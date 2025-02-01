@@ -46,20 +46,17 @@ export class ProductController {
 
   static async createProduct(req: Request, res: Response): Promise<Response<ProductResponse>> {
     try {
-      console.log('Creating product:', req.body);
       const product = res.locals.result || await ProductService.createProduct(req.body);
-      console.log('Product created successfully:', product);
       return res.status(HTTP.CREATED).json({
         data: product,
         message: SUCCESS_MESSAGES.PRODUCT_CREATED
       });
     } catch (error) {
-      console.error('Error creating product:', error);
       return this.handleError(res, error as Error, ERROR_MESSAGES.CREATION_ERROR);
     }
-  }
+}
 
-  static async updateProduct(req: Request, res: Response): Promise<Response<ProductResponse>> {
+static async updateProduct(req: Request, res: Response): Promise<Response<ProductResponse>> {
     const { id } = req.params;
     try {
       const productData: ProductUpdateInput = req.body;
@@ -71,7 +68,7 @@ export class ProductController {
     } catch (error) {
       return this.handleError(res, error as Error, ERROR_MESSAGES.UPDATE_ERROR);
     }
-  }
+}
 
   static async updateActivate(req: Request, res: Response): Promise<Response<ProductResponse>> {
     const { id } = req.params;

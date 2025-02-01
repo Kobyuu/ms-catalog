@@ -13,7 +13,11 @@ export const ERROR_MESSAGES = {
   INVALID_PRICE: "El precio debe ser un valor numérico válido",
   EMPTY_PRICE: "El precio es requerido",
   PRICE_POSITIVE: "El precio debe ser mayor a 0",
-  INVALID_AVAILABILITY: "La disponibilidad debe ser un valor verdadero o falso"
+  INVALID_AVAILABILITY: "La disponibilidad debe ser un valor verdadero o falso",
+
+  DB_URL_NOT_DEFINED: "DATABASE_URL no está definida en las variables de entorno",
+  DB_CONNECTION: "Error al conectar la base de datos"
+
 };
 
 export const SUCCESS_MESSAGES = {
@@ -21,5 +25,6 @@ export const SUCCESS_MESSAGES = {
     PRODUCT_UPDATED: "Producto actualizado exitosamente",
     PRODUCT_FETCHED: "Producto obtenido exitosamente",
     PRODUCTS_FETCHED: "Productos obtenidos exitosamente",
-    PRODUCT_ACTIVATED: "Estado del producto actualizado exitosamente"
+    PRODUCT_ACTIVATED: "Estado del producto actualizado exitosamente",
+    DB_CONNECTION: "Conexión exitosa a la base de datos"
 };

@@ -1,23 +1,18 @@
-import colors from 'colors'
-import server from "./server"
-import db from './config/db'
-
-const port = process.env.PORT || 4001
+import colors from 'colors';
+import server from "./server";
+import { connectDb } from './config/db';
+import { ENV } from './config/constants';
 
 async function startServer() {
     try {
-        await db.authenticate()
-        await db.sync()
-        console.log(colors.bgGreen.white('Conexión exitosa a la base de datos'))
-        
-        server.listen(port, () => {
-            console.log(colors.cyan.bold(`REST API en el puerto ${port}`))
-        })
+        await connectDb();
+        server.listen(ENV.PORT, () => {
+            console.log(colors.cyan.bold(`REST API en el puerto ${ENV.PORT}`));
+        });
     } catch (error) {
-        console.log(error)
-        console.log(colors.bgRed.white('Error al conectar la base de datos'))
-        process.exit(1)
+        console.error(error);
+        process.exit(1);
     }
 }
 
-startServer()
+startServer();
