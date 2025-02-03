@@ -16,7 +16,9 @@ export const ERROR_MESSAGES = {
   INVALID_AVAILABILITY: "La disponibilidad debe ser un valor verdadero o falso",
 
   DB_URL_NOT_DEFINED: "DATABASE_URL no está definida en las variables de entorno",
-  DB_CONNECTION: "Error al conectar la base de datos"
+  DB_CONNECTION: "Error al conectar la base de datos",
+
+  EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
 
 };
 

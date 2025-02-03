@@ -3,33 +3,33 @@ import { param } from 'express-validator';
 import { handleInputErrors } from './middleware/handleInputErrors';
 import { ProductController } from './controllers/productController';
 import { ERROR_MESSAGES } from './config/constants/messages';
+import { withCircuitBreaker } from './middleware/circuitBreaker';
 
 const router = Router();
 
-// Ruta para obtener todos los productos
-router.get('/', ProductController.getProducts);
+// Add circuit breaker to routes
+router.get('/', withCircuitBreaker('getAllProducts'), ProductController.getProducts);
 
-// Ruta para obtener un producto por ID con validación
 router.get('/:id',
     param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
     handleInputErrors,
+    withCircuitBreaker('getProductById'),
     ProductController.getProductById
 );
 
-// Ruta para crear un producto
-router.post('/', ProductController.createProduct);
+router.post('/', withCircuitBreaker('createProduct'), ProductController.createProduct);
 
-// Ruta para actualizar un producto por ID
 router.put('/:id',
     param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
     handleInputErrors,
+    withCircuitBreaker('updateProduct'),
     ProductController.updateProduct
 );
 
-// Ruta para alternar el estado de activación de un producto
 router.patch('/:id',
     param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
     handleInputErrors,
+    withCircuitBreaker('toggleActivate'),
     ProductController.updateActivate
 );
 

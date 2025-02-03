@@ -1,7 +1,8 @@
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:latest
+    image: postgres:15
+    container_name: ms-catalog_db
     environment:
       POSTGRES_DB: microservicios
       POSTGRES_USER: postgres
@@ -12,6 +13,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   # Node.js Application
+
+  redis:
+    image: redis:7
+    container_name: ms-catalog_redis
+    ports:
+      - "6379:6379"
+
   app:
     build:
       context: .

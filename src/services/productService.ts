@@ -1,112 +1,95 @@
 import { Transaction } from "sequelize";
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE, MODEL_FIELDS, ENV } from "../config/constants";
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
+import { DATABASE, MODEL_FIELDS } from "../config/constants";
+import { ERROR_MESSAGES } from "../config/constants/messages";
+import { axiosInstance } from "../config/constants/axiosClient";
+import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 
 export class ProductService {
-  private static axiosInstance = axios.create();
-
-  static {
-    axiosRetry(this.axiosInstance, { 
-      retries: ENV.RETRY_LIMIT,
-      retryDelay: axiosRetry.exponentialDelay,
-      retryCondition: (error) => {
-        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-          error.code === 'ECONNABORTED';
-      }
-    });
-  }
-
-  static async withRetries<T>(action: () => Promise<T>): Promise<T> {
-    let lastError;
-    for (let attempt = 0; attempt < ENV.RETRY_LIMIT; attempt++) {
-      try {
-        return await action();
-      } catch (error) {
-        lastError = error;
-        if (attempt < ENV.RETRY_LIMIT - 1) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
-      }
+  // Utilidad para manejar transacciones de base de datos
+  private static async withTransaction<T>(operation: (transaction: Transaction) => Promise<T>): Promise<T> {
+    const transaction = await db.transaction();
+    try {
+      const result = await operation(transaction);
+      await transaction.commit();
+      return result;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-    throw lastError;
   }
 
-  static async getAllProducts() {
-    return await this.withRetries(async () => {
-      return await Product.findAll({
-        order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
-        attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-      });
+  // Obtener todos los productos desde la base de datos
+  static async getAllProducts(): Promise<ProductAttributes[]> {
+    return await Product.findAll({
+      order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
+      attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
     });
   }
 
-  static async getProductById(id: string) {
-    return await this.withRetries(async () => {
-      return await Product.findByPk(id, {
-        attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-      });
+  // Buscar un producto específico por su ID
+  static async getProductById(id: string): Promise<ProductAttributes> {
+    const product = await Product.findByPk(id, {
+      attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
+    });
+    if (!product) {
+      throw new Error(ERROR_MESSAGES.NOT_FOUND);
+    }
+    return product;
+  }
+
+  // Obtener datos de productos desde una API externa
+  static async getExternalProducts(apiUrl: string): Promise<any> {
+    try {
+      const response = await axiosInstance.get(apiUrl);
+      return response.data;
+    } catch (error) {
+      throw new Error(ERROR_MESSAGES.EXTERNAL_API_ERROR);
+    }
+  }
+
+  // Crear un nuevo producto en la base de datos
+  static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
+    return ProductService.withTransaction(async (transaction) => {
+      const product = await Product.create(productData, { transaction });
+      return product;
     });
   }
 
-  static async findProductByName(name: string) {
-    return await this.withRetries(async () => {
-      return await Product.findOne({ 
-        where: { [MODEL_FIELDS.NAME]: name } 
-      });
-    });
-  }
-
-  static async createProduct(productData: any) {
-    return await this.withRetries(async () => {
-      const transaction: Transaction = await db.transaction();
-      try {
-        const product = await Product.create(productData, { transaction });
-        await transaction.commit();
-        return product;
-      } catch (error) {
-        await transaction.rollback();
-        throw error;
+  // Actualizar un producto existente
+  static async updateProduct(id: string, productData: ProductUpdateInput): Promise<ProductAttributes> {
+    return ProductService.withTransaction(async (transaction) => {
+      const product = await Product.findByPk(id, { transaction });
+      if (!product) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
+      await product.update(productData, { transaction });
+      return product;
     });
   }
 
-  static async updateProduct(id: string, productData: any) {
-    return await this.withRetries(async () => {
-      const transaction: Transaction = await db.transaction();
-      try {
-        const product = await Product.findByPk(id, { transaction });
-        if (!product) {
-          throw new Error("Producto no encontrado");
-        }
-        await product.update(productData, { transaction });
-        await transaction.commit();
-        return product;
-      } catch (error) {
-        await transaction.rollback();
-        throw error;
+  // Alternar el estado de activación de un producto
+  static async toggleActivate(id: string): Promise<ProductAttributes> {
+    return ProductService.withTransaction(async (transaction) => {
+      const product = await Product.findByPk(id, { transaction });
+      if (!product) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
+      product.activate = !product.activate;
+      await product.save({ transaction });
+      return product;
     });
   }
 
-  static async toggleActivate(id: string) {
-    return await this.withRetries(async () => {
-      const transaction: Transaction = await db.transaction();
-      try {
-        const product = await Product.findByPk(id, { transaction });
-        if (!product) {
-          throw new Error("Producto no encontrado");
-        }
-        product.activate = !product.activate;
-        await product.save({ transaction });
-        await transaction.commit();
-        return product;
-      } catch (error) {
-        await transaction.rollback();
-        throw error;
+  // Eliminar un producto (borrado lógico)
+  static async deleteProduct(id: string): Promise<void> {
+    return ProductService.withTransaction(async (transaction) => {
+      const product = await Product.findByPk(id, { transaction });
+      if (!product) {
+        throw new Error(ERROR_MESSAGES.NOT_FOUND);
       }
+      await product.update({ activate: false }, { transaction });
     });
   }
 }

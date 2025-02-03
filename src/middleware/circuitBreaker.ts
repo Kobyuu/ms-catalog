@@ -4,9 +4,12 @@ import { ProductService } from '../services/productService';
 import { HTTP } from '../config/constants/httpStatus';
 
 const breakerOptions = {
-  timeout: 10000,          // Increase to 10 seconds
-  errorThresholdPercentage: 80,  // More tolerant to errors
-  resetTimeout: 60000      // Longer reset time
+  timeout: 3000,                    
+  errorThresholdPercentage: 30,     
+  resetTimeout: 10000,              
+  volumeThreshold: 1,               
+  rollingCountTimeout: 10000,       
+  rollingCountBuckets: 10,         
 };
 
 // Create circuit breakers for each service method
@@ -18,6 +21,20 @@ const breakers = {
   toggleActivate: new CircuitBreaker(ProductService.toggleActivate, breakerOptions)
 };
 
+breakers.getProductById.fallback(() => {
+  return Promise.reject({
+    statusCode: 503,
+    error: 'Error al obtenr producto por id'
+  });
+});
+
+breakers.createProduct.fallback(() => {
+  return Promise.reject({
+    statusCode: 503,
+    error: 'error al crear prodtucto'
+  });
+});
+
 // Add event listeners for monitoring
 Object.values(breakers).forEach(breaker => {
   breaker.on('open', () => console.log('Circuit Breaker is now OPEN'));
@@ -28,9 +45,15 @@ Object.values(breakers).forEach(breaker => {
 export const withCircuitBreaker = (operation: keyof typeof breakers) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const breaker = breakers[operation];
-    
+
     try {
-      // Pass the parameters based on the operation
+      if (breaker.opened) {
+        return res.status(503).json({
+          error: 'Service is temporarily unavailable. Please try again later.',
+          statusCode: 503
+        });
+      }
+
       const params = operation === 'getProductById' || operation === 'toggleActivate' 
         ? [req.params.id]
         : operation === 'updateProduct' 
@@ -40,13 +63,18 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
             : [];
 
       const result = await breaker.fire(...params);
-      res.locals.result = result; // Store result for the next middleware
+      res.locals.result = result;
       next();
     } catch (error) {
+      // Si el error posee un statusCode, responder con ese código
+      if (error && error.statusCode) {
+        return res.status(error.statusCode).json(error);
+      }
+
       if (breaker.opened) {
-        return res.status(HTTP.SERVER_ERROR).json({
+        return res.status(503).json({
           error: 'Service is temporarily unavailable. Please try again later.',
-          statusCode: HTTP.SERVER_ERROR
+          statusCode: 503
         });
       }
       next(error);
