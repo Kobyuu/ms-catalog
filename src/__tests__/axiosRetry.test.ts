@@ -1,4 +1,4 @@
-import { axiosInstance } from '../config/constants/axiosClient';
+import { axiosInstance } from '../config/axiosClient';
 import MockAdapter from 'axios-mock-adapter';
 import { redis } from '../config/redisClient';
 
