@@ -3,7 +3,7 @@ import Product from "../models/Product.model";
 import db from "../config/db";
 import { DATABASE } from "../config/constants";
 import { ERROR_MESSAGES } from "../config/constants/";
-import { axiosInstance } from "../config/constants/axiosClient";
+import { axiosInstance } from "../config/axiosClient";
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 
 export class ProductService {

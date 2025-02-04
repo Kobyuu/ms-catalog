@@ -1,12 +1,15 @@
+import { DEFAULTS } from './defaults';
+import '../validateEnv';
+
 export const ENV = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: process.env.PORT || 4001,
-  RETRY_LIMIT: 3,
-  REDIS: {
-    URL: process.env.REDIS_URL || 'redis://redis:6379', 
-    HOST: process.env.REDIS_HOST || 'redis',
-    PORT: Number(process.env.REDIS_PORT) || 6379,
-    CACHE_EXPIRY: Number(process.env.REDIS_CACHE_EXPIRY) || 3600,
-    RETRY_DELAY: Number(process.env.REDIS_RETRY_DELAY) || 1000
-  }
+    NODE_ENV: process.env.NODE_ENV || DEFAULTS.NODE_ENV,
+    PORT: Number(process.env.PORT) || DEFAULTS.PORT,
+    RETRY_LIMIT: Number(process.env.RETRY_ATTEMPTS) || DEFAULTS.RETRY_ATTEMPTS,
+    REDIS: {
+        URL: process.env.REDIS_URL || DEFAULTS.REDIS.URL,
+        HOST: process.env.REDIS_HOST || DEFAULTS.REDIS.HOST,
+        PORT: Number(process.env.REDIS_PORT) || DEFAULTS.REDIS.PORT,
+        CACHE_EXPIRY: Number(process.env.CACHE_EXPIRY) || DEFAULTS.REDIS.CACHE_EXPIRY,
+        RETRY_DELAY: Number(process.env.RETRY_DELAY) || DEFAULTS.REDIS.RETRY_DELAY
+    }
 };

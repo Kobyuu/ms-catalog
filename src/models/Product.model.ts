@@ -1,4 +1,4 @@
-import { Table, Column, Model, DataType, Default, Validate } from 'sequelize-typescript'
+import { Table, Column, Model, DataType, Default } from 'sequelize-typescript'
 import { ERROR_MESSAGES } from '../config/constants/messages'
 
 @Table({

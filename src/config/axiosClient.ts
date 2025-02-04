@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
-import { ENV } from '../constants';
-import { redis } from '../redisClient';
+import { ENV } from '../config/constants';
+import { redis } from '../config/redisClient';
 
 // Crear instancia de Axios
 const axiosInstance: AxiosInstance = axios.create();

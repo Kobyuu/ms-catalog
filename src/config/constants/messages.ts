@@ -21,7 +21,9 @@ export const ERROR_MESSAGES = {
   EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
 
   RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos",
-  REDIS_CONNECTION: "Error al conectar a Redis"
+  REDIS_CONNECTION: "Error al conectar a Redis",
+
+  ENV_VAR_NOT_DEFINED: "Variable de entorno no definida"
 
 };
 
