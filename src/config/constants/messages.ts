@@ -20,6 +20,8 @@ export const ERROR_MESSAGES = {
 
   EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
 
+  RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos"
+
 };
 
 export const SUCCESS_MESSAGES = {

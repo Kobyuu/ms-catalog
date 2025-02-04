@@ -1,18 +1,16 @@
 import CircuitBreaker from 'opossum';
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
-import { HTTP } from '../config/constants/httpStatus';
 
 const breakerOptions = {
-  timeout: 3000,                    
-  errorThresholdPercentage: 30,     
-  resetTimeout: 10000,              
-  volumeThreshold: 1,               
-  rollingCountTimeout: 10000,       
-  rollingCountBuckets: 10,         
+  timeout: 3000,
+  errorThresholdPercentage: 30,
+  resetTimeout: 10000,
+  volumeThreshold: 1,
+  rollingCountTimeout: 10000,
+  rollingCountBuckets: 10,
 };
 
-// Create circuit breakers for each service method
 const breakers = {
   getAllProducts: new CircuitBreaker(ProductService.getAllProducts, breakerOptions),
   getProductById: new CircuitBreaker(ProductService.getProductById, breakerOptions),
@@ -21,37 +19,33 @@ const breakers = {
   toggleActivate: new CircuitBreaker(ProductService.toggleActivate, breakerOptions)
 };
 
-breakers.getProductById.fallback(() => {
-  return Promise.reject({
-    statusCode: 503,
-    error: 'Error al obtenr producto por id'
+// Add fallback handlers for all operations
+Object.entries(breakers).forEach(([operation, breaker]) => {
+  breaker.fallback(() => {
+    return Promise.reject({
+      statusCode: 503,
+      error: `Service ${operation} is temporarily unavailable`
+    });
   });
-});
 
-breakers.createProduct.fallback(() => {
-  return Promise.reject({
-    statusCode: 503,
-    error: 'error al crear prodtucto'
-  });
-});
-
-// Add event listeners for monitoring
-Object.values(breakers).forEach(breaker => {
-  breaker.on('open', () => console.log('Circuit Breaker is now OPEN'));
-  breaker.on('close', () => console.log('Circuit Breaker is now CLOSED'));
-  breaker.on('halfOpen', () => console.log('Circuit Breaker is now HALF-OPEN'));
+  // Add comprehensive monitoring
+  breaker.on('open', () => console.log(`Circuit Breaker ${operation} is now OPEN`));
+  breaker.on('close', () => console.log(`Circuit Breaker ${operation} is now CLOSED`));
+  breaker.on('halfOpen', () => console.log(`Circuit Breaker ${operation} is now HALF-OPEN`));
+  breaker.on('fallback', () => console.log(`Circuit Breaker ${operation} fallback executed`));
 });
 
 export const withCircuitBreaker = (operation: keyof typeof breakers) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const breaker = breakers[operation];
 
     try {
       if (breaker.opened) {
-        return res.status(503).json({
-          error: 'Service is temporarily unavailable. Please try again later.',
+        res.status(503).json({
+          error: 'Service is temporarily unavailable',
           statusCode: 503
         });
+        return;
       }
 
       const params = operation === 'getProductById' || operation === 'toggleActivate' 
@@ -65,17 +59,10 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
       const result = await breaker.fire(...params);
       res.locals.result = result;
       next();
-    } catch (error) {
-      // Si el error posee un statusCode, responder con ese código
-      if (error && error.statusCode) {
-        return res.status(error.statusCode).json(error);
-      }
-
-      if (breaker.opened) {
-        return res.status(503).json({
-          error: 'Service is temporarily unavailable. Please try again later.',
-          statusCode: 503
-        });
+    } catch (error: any) {
+      if (error?.statusCode) {
+        res.status(error.statusCode).json(error);
+        return;
       }
       next(error);
     }

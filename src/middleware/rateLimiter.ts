@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { HTTP } from '../config/constants/httpStatus';
+import { HTTP } from '../config/constants/';
 
 // Configuración del rate limiter
 const rateLimiter = rateLimit({

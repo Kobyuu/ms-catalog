@@ -12,9 +12,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "baseUrl": "./",
+    "types": ["jest", "node"],
     "typeRoots": ["node_modules/@types", "./types"]
   },
-  "include": ["src/**/*", "types/**/*.d.ts"]
+  "include": ["src/**/*", "types/**/*.d.ts"],
+  "exclude": ["node_modules"]
 }

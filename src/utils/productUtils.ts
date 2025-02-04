@@ -1,6 +1,6 @@
-import { MODEL_FIELDS } from "../config/constants";
+
 import type { ProductAttributes, ProductResponse } from "../types/product.types";
-import { ERROR_MESSAGES } from "../config/constants/messages";
+import { ERROR_MESSAGES } from "../config/constants/";
 
 export class ProductUtils {
   static validateProductData(data: Partial<ProductAttributes>): boolean {
@@ -13,7 +13,8 @@ export class ProductUtils {
   }
 
   static isProductActive(product: ProductAttributes): boolean {
-    return product[MODEL_FIELDS.ACTIVATE];
+    // Access activate property directly instead of using string indexing
+    return product.activate;
   }
 
   static formatErrorResponse(error: Error, message: string): ProductResponse {

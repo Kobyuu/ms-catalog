@@ -1,8 +1,8 @@
 import { Transaction } from "sequelize";
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE, MODEL_FIELDS } from "../config/constants";
-import { ERROR_MESSAGES } from "../config/constants/messages";
+import { DATABASE } from "../config/constants";
+import { ERROR_MESSAGES } from "../config/constants/";
 import { axiosInstance } from "../config/constants/axiosClient";
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 

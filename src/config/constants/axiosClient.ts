@@ -1,16 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
-import Redis from 'ioredis';
 import { ENV } from '../constants';
-
-// Configuración de Redis
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-  retryStrategy: (times) => {
-    return Math.min(times * 50, 2000);
-  }
-});
+import { redis } from '../redisClient';
 
 // Crear instancia de Axios
 const axiosInstance: AxiosInstance = axios.create();
@@ -48,4 +39,4 @@ axiosInstance.interceptors.response.use(async (response) => {
   return response;
 });
 
-export { axiosInstance, redis };
+export { axiosInstance };
