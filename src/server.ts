@@ -3,14 +3,13 @@ import router from './router'
 import { rateLimiter } from './middleware/rateLimiter'
 
 const server = express()
+//Leer datos de formularios
+server.use(express.json())
 
 // Aplicar rate limiter antes de todas las rutas
 server.use(rateLimiter)
 
-//Circuitbreaker
-
-//Leer datos de formularios
-server.use(express.json())
+// Configuración de rutas
 server.use('/api/products', router)
 
 export default server

@@ -6,7 +6,7 @@ import { ENV } from './config/constants';
 async function startServer() {
     try {
         await connectDb();
-        server.listen(ENV.PORT, () => {
+        server.listen(Number(ENV.PORT), "0.0.0.0", () => {
             console.log(colors.cyan.bold(`REST API en el puerto ${ENV.PORT}`));
         });
     } catch (error) {

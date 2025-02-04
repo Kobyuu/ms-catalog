@@ -20,7 +20,8 @@ export const ERROR_MESSAGES = {
 
   EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
 
-  RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos"
+  RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos",
+  REDIS_CONNECTION: "Error al conectar a Redis"
 
 };
 
@@ -30,5 +31,6 @@ export const SUCCESS_MESSAGES = {
     PRODUCT_FETCHED: "Producto obtenido exitosamente",
     PRODUCTS_FETCHED: "Productos obtenidos exitosamente",
     PRODUCT_ACTIVATED: "Estado del producto actualizado exitosamente",
-    DB_CONNECTION: "Conexión exitosa a la base de datos"
+    DB_CONNECTION: "Conexión exitosa a la base de datos",
+    REDIS_CONNECTION: "Conexión exitosa a Redis"
 };

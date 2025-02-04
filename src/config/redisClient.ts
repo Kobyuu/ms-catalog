@@ -1,12 +1,25 @@
 import Redis from 'ioredis';
+import RedisMock from 'ioredis-mock';
+import { ENV } from './constants/environment';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from './constants';
 
-// Configuración de Redis
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-  retryStrategy: (times) => {
-    return Math.min(times * 50, 2000);
-  }
+const redis = process.env.NODE_ENV === 'test' 
+  ? new RedisMock()
+  : new Redis({
+      host: ENV.REDIS.HOST,
+      port: ENV.REDIS.PORT,
+      retryStrategy: (times) => {
+        return Math.min(times * 50, 2000);
+      }
+    });
+
+redis.on('connect', () => {
+  console.log(SUCCESS_MESSAGES.REDIS_CONNECTION);
+});
+
+redis.on('error', (err) => {
+  console.log(ERROR_MESSAGES.REDIS_CONNECTION);
+  console.error('Redis Client Error:', err);
 });
 
 export { redis };
