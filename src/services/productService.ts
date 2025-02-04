@@ -1,10 +1,10 @@
 import { Transaction } from "sequelize";
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE } from "../config/constants";
-import { ERROR_MESSAGES } from "../config/constants/";
+import { DATABASE, ERROR_MESSAGES } from "../config/constants";
 import { axiosInstance } from "../config/axiosClient";
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
+import { LoggerService } from './loggerService';
 
 export class ProductService {
   // Utilidad para manejar transacciones de base de datos
@@ -22,10 +22,17 @@ export class ProductService {
 
   // Obtener todos los productos desde la base de datos
   static async getAllProducts(): Promise<ProductAttributes[]> {
-    return await Product.findAll({
-      order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
-      attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-    });
+    try {
+      const products = await Product.findAll({
+        order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
+        attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
+      });
+      LoggerService.info('Products fetched successfully');
+      return products;
+    } catch (error) {
+      LoggerService.error('Error fetching products', error as Error);
+      throw error;
+    }
   }
 
   // Buscar un producto específico por su ID
