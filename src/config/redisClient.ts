@@ -3,6 +3,7 @@ import RedisMock from 'ioredis-mock';
 import { ENV } from './constants/environment';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from './constants';
 
+// Crear una instancia de Redis y conectarla
 const redis = process.env.NODE_ENV === 'test' 
   ? new RedisMock()
   : new Redis({

@@ -1,7 +1,9 @@
 import CircuitBreaker from 'opossum';
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
+import { ERROR_MESSAGES } from 'src/config/constants';
 
+// Configuración del circuit breaker
 const breakerOptions = {
   timeout: 3000,
   errorThresholdPercentage: 30,
@@ -10,7 +12,7 @@ const breakerOptions = {
   rollingCountTimeout: 10000,
   rollingCountBuckets: 10,
 };
-
+// Crear un circuit breaker para cada operación
 const breakers = {
   getAllProducts: new CircuitBreaker(ProductService.getAllProducts, breakerOptions),
   getProductById: new CircuitBreaker(ProductService.getProductById, breakerOptions),
@@ -19,22 +21,23 @@ const breakers = {
   toggleActivate: new CircuitBreaker(ProductService.toggleActivate, breakerOptions)
 };
 
-// Add fallback handlers for all operations
+// Configurar fallback para cada uno
 Object.entries(breakers).forEach(([operation, breaker]) => {
   breaker.fallback(() => {
     return Promise.reject({
       statusCode: 503,
-      error: `Service ${operation} is temporarily unavailable`
+      error: `El servicio ${operation} está deshabilitado temporalmente.`
     });
   });
 
-  // Add comprehensive monitoring
+  // Monitorear eventos
   breaker.on('open', () => console.log(`Circuit Breaker ${operation} is now OPEN`));
   breaker.on('close', () => console.log(`Circuit Breaker ${operation} is now CLOSED`));
   breaker.on('halfOpen', () => console.log(`Circuit Breaker ${operation} is now HALF-OPEN`));
   breaker.on('fallback', () => console.log(`Circuit Breaker ${operation} fallback executed`));
 });
 
+// Middleware para circuit breaker
 export const withCircuitBreaker = (operation: keyof typeof breakers) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const breaker = breakers[operation];
@@ -42,12 +45,12 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
     try {
       if (breaker.opened) {
         res.status(503).json({
-          error: 'Service is temporarily unavailable',
+          error: ERROR_MESSAGES.SERVICE_UNAVAILABLE,
           statusCode: 503
         });
         return;
       }
-
+      // Ejecutar la operación correspondiente
       const params = operation === 'getProductById' || operation === 'toggleActivate' 
         ? [req.params.id]
         : operation === 'updateProduct' 
@@ -55,7 +58,7 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
           : operation === 'createProduct'
             ? [req.body]
             : [];
-
+      // Ejecutar la operación y pasar el resultado al siguiente middleware
       const result = await breaker.fire(...params);
       res.locals.result = result;
       next();

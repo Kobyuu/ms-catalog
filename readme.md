@@ -4,59 +4,124 @@ Microservicio de catálogo para gestionar los productos disponibles.
 
 ## Descripción
 
-Este microservicio permite gestionar un catálogo de productos, incluyendo la obtención, adición y modificación de productos.
+Este microservicio permite gestionar un catálogo de productos, incluyendo la obtención, adición y modificación de ellos.
 
 ## Instalación
 
 1. Clona el repositorio:
     ```sh
-    git clone https://github.com/TuUsuario/ms-catalog.git
+    git clone https://github.com/Kobyuu/ms-catalog.git
     ```
 2. Navega al directorio del proyecto:
     ```sh
     cd ms-catalog
     ```
-3. Instala las dependencias:
-    ```sh
-    npm install
-    ```
 
 ## Configuración
 
-1. Crea un archivo `.env` en la raíz del proyecto con el siguiente contenido:
+1. Crea un archivo [.env](http://_vscodecontentref_/1) en la raíz del proyecto:
     ```env
-    # Configuración de la base de datos
     DATABASE_URL=postgres://usuario:contraseña@localhost:5432/ms-catalog
+    PORT=4001
+    REDIS_URL=redis://redis:6379
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+    CACHE_EXPIRY=3600
+    RETRY_ATTEMPTS=3
+    RETRY_DELAY=1000
     ```
 
-## Uso sin docker
+## Ejecución con Docker (Recomendado)
 
-1. Inicia el servidor:
-    ```sh
-    npm run dev
-    ```
-2. El servidor estará disponible en `http://localhost:4001`.
-
-### Uso con Docker
-
-1. Tener Docker Desktop instalado.
-2. Construye las imágenes de Docker y levanta los contenedores con:
+1. Construye y levanta los contenedores:
     ```sh
     docker-compose up --build
     ```
-3. El servidor estará disponible en `http://localhost:4001` (como en el uso sin Docker).
-4. Para detener los contenedores: 
+
+2. La aplicación estará disponible en:
+    - API: http://localhost:5001
+    - PostgreSQL: localhost:6432
+    - Redis: localhost:7379
+
+3. Para detener los contenedores:
     ```sh
     docker-compose down
     ```
 
-## Rutas de la API
+## Desarrollo Local
 
-- **GET** `/api/products/`: Obtener todos los productos disponibles en el catálogo.
-- **POST** `/api/products/`: Agregar un nuevo producto al catálogo.
-- **PUT** `/api/products/:id`: Editar las características de un producto en el catálogo.
+1. Instala las dependencias:
+    ```sh
+    npm install
+    ```
 
-## Mensajes de error
+2. Inicia el servidor de desarrollo:
+    ```sh
+    npm run dev
+    ```
 
-Los mensajes de error personalizados se encuentran en la carpeta `config/constants`
+## Scripts Administrativos
 
+- Sembrar la base de datos:
+    ```sh
+    npm run db:seed
+    ```
+
+- Limpiar productos inactivos:
+    ```sh
+    npm run admin:cleanup
+    ```
+
+- Generar reporte de inventario:
+    ```sh
+    npm run admin:report
+    ```
+
+
+## API Endpoints
+
+### Productos
+
+- **GET** `/api/products`
+  - Obtiene todos los productos
+  - Rate limit: 100 peticiones por IP cada 15 minutos
+
+- **GET** `/api/products/:id`
+  - Obtiene un producto específico
+  - Parámetros: [id](http://_vscodecontentref_/2) (número entero)
+
+- **POST** `/api/products`
+  - Crea un nuevo producto
+  - Body:
+    ```json
+    {
+      "name": "string",
+      "price": number,
+      "activate": boolean
+    }
+    ```
+
+- **PUT** `/api/products/:id`
+  - Actualiza un producto existente
+  - Parámetros: [id](http://_vscodecontentref_/3) (número entero)
+  - Body: Similar al POST (campos opcionales)
+
+- **PATCH** `/api/products/:id`
+  - Activa/desactiva un producto
+  - Parámetros: [id](http://_vscodecontentref_/4) (número entero)
+
+## Características
+
+- Circuit Breaker para manejo de fallos
+- Rate Limiting por IP
+- Caché con Redis
+- Logs estructurados con Winston
+- Tests con Jest
+- TypeScript
+- Docker Compose para desarrollo y producción
+
+## Tests
+
+Ejecutar los tests:
+```sh
+npm test

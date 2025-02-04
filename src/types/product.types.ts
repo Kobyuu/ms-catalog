@@ -1,7 +1,4 @@
-/**
- * Interfaz que define los atributos del modelo Producto
- * Incluye campos opcionales como id y timestamps
- */
+// Interfaz que define los atributos del modelo Producto
 export interface ProductAttributes {
     id?: number;
     name: string;
@@ -11,25 +8,15 @@ export interface ProductAttributes {
     updatedAt?: Date;
   }
   
-  /**
-   * Interfaz para las respuestas HTTP de la API
-   * Permite enviar datos, mensajes y errores estructurados
-   */
+// Interfaz que define la respuesta de la API
   export interface ProductResponse {
     data?: ProductAttributes | ProductAttributes[];
     message?: string;
     error?: string;
     statusCode?: number;
   }
-  
-  /**
-   * Tipo para crear nuevos productos
-   * Excluye campos autogenerados (id, createdAt, updatedAt)
-   */
+// Tipo para crear nuevos productos (omitiendo campos autogenerados)
   export type ProductCreateInput = Omit<ProductAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   
-  /**
-   * Tipo para actualizar productos existentes
-   * Hace todos los campos opcionales
-   */
+// Tipo para actualizar productos (permitiendo campos parciales)
   export type ProductUpdateInput = Partial<ProductCreateInput>;

@@ -1,7 +1,7 @@
 import { Transaction } from "sequelize";
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE, ERROR_MESSAGES } from "../config/constants";
+import { DATABASE, ERROR_MESSAGES, SUCCESS_MESSAGES } from "../config/constants";
 import { axiosInstance } from "../config/axiosClient";
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 import { LoggerService } from './loggerService';
@@ -27,10 +27,10 @@ export class ProductService {
         order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
         attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
       });
-      LoggerService.info('Products fetched successfully');
+      LoggerService.info(SUCCESS_MESSAGES.PRODUCTS_FETCHED);
       return products;
     } catch (error) {
-      LoggerService.error('Error fetching products', error as Error);
+      LoggerService.error(ERROR_MESSAGES.FETCH_ERROR, error as Error);
       throw error;
     }
   }

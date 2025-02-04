@@ -7,6 +7,7 @@ const customFormat = printf(({ level, message, timestamp }) => {
   return `${timestamp} [${level}]: ${message}`;
 });
 
+// Servicio de logs
 export class LoggerService {
   private static instance = createLogger({
     level: ENV.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -15,17 +16,15 @@ export class LoggerService {
       colorize(),
       customFormat
     ),
+    // Configuración de los transportes de logs
     transports: [
-      // Console transport
       new transports.Console(),
-      // File transport for errors
       new transports.File({ 
         filename: 'logs/error.log', 
         level: 'error',
         maxsize: 5242880, // 5MB
         maxFiles: 5
       }),
-      // File transport for all logs
       new transports.File({ 
         filename: 'logs/combined.log',
         maxsize: 5242880, // 5MB
@@ -34,6 +33,7 @@ export class LoggerService {
     ]
   });
 
+// Métodos para loggear mensajes de diferentes niveles
   static info(message: string): void {
     this.instance.info(message);
   }
@@ -48,7 +48,6 @@ export class LoggerService {
       this.instance.error(message);
     }
   }
-
   static warn(message: string): void {
     this.instance.warn(message);
   }

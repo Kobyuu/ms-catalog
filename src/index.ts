@@ -3,6 +3,7 @@ import server from "./server";
 import { connectDb } from './config/db';
 import { ENV } from './config/constants';
 
+// Iniciar el servidor
 async function startServer() {
     try {
         await connectDb();

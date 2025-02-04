@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from '../config/constants/messages'
     tableName: 'products'
 })
 class Product extends Model {
+    // Validaciones de nombre
     @Column({
         type: DataType.STRING(100),
         allowNull: false,
@@ -15,7 +16,7 @@ class Product extends Model {
         }
     })
     declare name: string
-
+    // Validaciones de precio
     @Column({
         type: DataType.FLOAT(),
         allowNull: false,
@@ -33,7 +34,8 @@ class Product extends Model {
         }
     })
     declare price: number
-
+    
+    // Disponibilidad
     @Default(true)
     @Column({
         type: DataType.BOOLEAN()

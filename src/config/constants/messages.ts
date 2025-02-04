@@ -23,7 +23,8 @@ export const ERROR_MESSAGES = {
   RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos",
   REDIS_CONNECTION: "Error al conectar a Redis",
 
-  ENV_VAR_NOT_DEFINED: "Variable de entorno no definida"
+  ENV_VAR_NOT_DEFINED: "Variable de entorno no definida",
+  SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente"
 
 };
 
