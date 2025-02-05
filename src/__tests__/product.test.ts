@@ -24,7 +24,7 @@ describe('Product API Integration Tests', () => {
     rateLimiter.resetKey('::ffff:127.0.0.1');
   });
 
-  // ---------------- (GET) Obtener producto por ID ----------------
+  // Obtener producto por ID
   describe('GET /api/products/:id', () => {
     it('should return 404 if product not found', async () => {
       console.log('Iniciando prueba: should return 404 if product not found');
@@ -39,7 +39,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
-  // ---------------- PUT Product (Full) ----------------
+  // Actualizar un producto con PUT
   describe('PUT /api/products/:id', () => {
     it('should update a product', async () => {
       const response = await request(server)
@@ -70,7 +70,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
-  // ---------------- (GET) Obtener todos los productos ----------------
+  // Obtener todos los productos con Get
   describe('GET /api/products', () => {
     it('should get all products', async () => {
       const response = await request(server)
@@ -96,7 +96,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
-  // ---------------- (POST) Crear un nuevo producto ----------------
+  // Crear un nuevo producto con POST
   describe('POST /api/products', () => {
     it('should create a new product', async () => {
       const response = await request(server)

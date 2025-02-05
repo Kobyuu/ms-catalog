@@ -8,7 +8,7 @@ enum State {
   OPEN,
   HALF_OPEN
 }
-
+// Implementación de un circuit breaker personalizado
 export class CustomCircuitBreaker {
   private state: State = State.CLOSED;
   private failureCount: number = 0;
@@ -21,7 +21,7 @@ export class CustomCircuitBreaker {
   get opened(): boolean {
     return this.state === State.OPEN;
   }
-
+// Implementación de los métodos de circuit breaker
   private success(): void {
     this.failureCount = 0;
     this.state = State.CLOSED;
@@ -29,6 +29,7 @@ export class CustomCircuitBreaker {
 
   private fail(): void {
     this.failureCount++;
+    console.log(`Failure count: ${this.failureCount}`);
     if (this.failureCount >= this.failureThreshold) {
       this.state = State.OPEN;
       this.nextAttempt = Date.now() + this.resetTimeout;
@@ -39,27 +40,23 @@ export class CustomCircuitBreaker {
   private halfOpen(): void {
     this.state = State.HALF_OPEN;
   }
-
+  // Implementación de la función de fallback
   private async fallback(...args: any[]): Promise<any> {
-    // Implement your fallback logic here
     throw new CustomError(503, ERROR_MESSAGES.SERVICE_UNAVAILABLE);
   }
-
+  // Implementación de la función de disparo
   async fire(...args: any[]): Promise<any> {
     if (this.opened) {
-      if (Date.now() > this.nextAttempt) {
-        this.halfOpen();
-      } else {
-        return this.fallback(...args);
-      }
+      console.log(`El circuit breaker ${this.operation.name} está abierto`);
+      return this.fallback(...args);
     }
-
+    // Implementación de la operación del circuit breaker
     try {
       const result = await this.operation(...args);
       this.success();
       return result;
     } catch (error: any) {
-      // Only count as failure if it's not a business error (404, 400, etc)
+      // Si el error es un error de servidor, marcamos el circuit breaker como fallido
       if (!error.statusCode || error.statusCode >= 500) {
         this.fail();
       }
@@ -68,7 +65,7 @@ export class CustomCircuitBreaker {
   }
 }
 
-// Create breakers for each operation
+// Crear instancias de circuit breaker para cada operación
 
 export const breakers = {
   getAllProducts: new CustomCircuitBreaker(ProductService.getAllProducts),
@@ -78,19 +75,20 @@ export const breakers = {
   toggleActivate: new CustomCircuitBreaker(ProductService.toggleActivate)
 };
 
-// Middleware for circuit breaker
+// Middleware del circuit breaker
 export const withCircuitBreaker = (operation: keyof typeof breakers) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const breaker = breakers[operation];
 
     try {
+      // Si el breaker ya está abierto, lanzamos el error de servicio no disponible.
       if (breaker.opened) {
         throw new CustomError(503, ERROR_MESSAGES.SERVICE_UNAVAILABLE);
       }
-
-      const params = operation === 'getProductById' || operation === 'toggleActivate' 
+      // Ejecutar la operación del servicio
+      const params = operation === 'getProductById' || operation === 'toggleActivate'
         ? [req.params.id]
-        : operation === 'updateProduct' 
+        : operation === 'updateProduct'
           ? [req.params.id, req.body]
           : operation === 'createProduct'
             ? [req.body]
@@ -100,9 +98,12 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
       res.locals.result = result;
       next();
     } catch (error: any) {
-      const statusCode = error.statusCode || 500;
+      // Si el breaker está abierto, obtenemos la respuesta 503
+      const statusCode = breaker.opened ? 503 : error.statusCode || 500;
+      const errorMessage = breaker.opened ? ERROR_MESSAGES.SERVICE_UNAVAILABLE : error.message;
+      
       res.status(statusCode).json({
-        error: error.message,
+        error: errorMessage,
         statusCode
       });
     }

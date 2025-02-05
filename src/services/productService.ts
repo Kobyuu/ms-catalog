@@ -4,7 +4,6 @@ import db from "../config/db";
 import { DATABASE, ERROR_MESSAGES, SUCCESS_MESSAGES } from "../config/constants";
 import { axiosInstance } from "../config/axiosClient";
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
-import { LoggerService } from './loggerService';
 import { ProductUtils } from '../utils/productUtils';
 
 export class CustomError extends Error {
@@ -35,11 +34,9 @@ export class ProductService {
         order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
         attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
       });
-      LoggerService.info(SUCCESS_MESSAGES.PRODUCTS_FETCHED);
       return products;
     } catch (error) {
-      LoggerService.error(ERROR_MESSAGES.FETCH_ERROR, error as Error);
-      throw error;
+      throw new Error(ERROR_MESSAGES.FETCH_ERROR);
     }
   }
 
@@ -53,15 +50,6 @@ export class ProductService {
     }
     return product;
 }
-  // Obtener datos de productos desde una API externa
-  static async getExternalProducts(apiUrl: string): Promise<any> {
-    try {
-      const response = await axiosInstance.get(apiUrl);
-      return response.data;
-    } catch (error) {
-      throw new Error(ERROR_MESSAGES.EXTERNAL_API_ERROR);
-    }
-  }
 
   // Crear un nuevo producto en la base de datos
   static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
@@ -77,7 +65,7 @@ export class ProductService {
     if (!validation.isValid) {
       throw new CustomError(400, validation.error || ERROR_MESSAGES.INVALID_DATA);
     }
-    
+    // Actualiza el producto en la base de datos
     return ProductService.withTransaction(async (transaction) => {
       const product = await Product.findByPk(id, { transaction });
       if (!product) {

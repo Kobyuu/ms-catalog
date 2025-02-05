@@ -30,7 +30,7 @@ axiosInstance.interceptors.request.use(async (config) => {
 
   return config;
 });
-
+// Interceptor para cache con Redis
 axiosInstance.interceptors.response.use(async (response) => {
   if (response.config.method === 'get') {
     const cacheKey = `cache:${response.config.url}`;

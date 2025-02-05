@@ -10,7 +10,7 @@ describe('Circuit Breaker Tests', () => {
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
   let nextFunction: NextFunction;
-
+// Antes de cada prueba, se configuran los mocks y se simula un error en el servicio
   beforeEach(() => {
     mockReq = {};
     mockRes = {
@@ -22,40 +22,42 @@ describe('Circuit Breaker Tests', () => {
     (ProductService.getAllProducts as jest.Mock)
       .mockRejectedValue(new Error('Service error'));
   });
-
+// Después de cada prueba, se limpian los mocks
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   it('should handle service failure and open circuit', async () => {
     const failingOperation = withCircuitBreaker('getAllProducts');
+
+    (ProductService.getAllProducts as jest.Mock).mockRejectedValue({
+      response: { status: 500, data: 'Service error' }
+    });
     
-    // Fail the circuit breaker threshold number of times
+// Se simulan 3 errores consecutivos para abrir el circuito
     const threshold = 3;
     for (let i = 0; i < threshold; i++) {
       await failingOperation(
-        mockReq as Request,
+        mockReq as Request, 
         mockRes as Response,
         nextFunction
       );
-      // Add small delay between calls to ensure failures are registered
-      await new Promise(resolve => setTimeout(resolve, 50));
+// Se espera un tiempo para que el circuito se abra completamente
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-
-    // Make sure we wait longer for the circuit breaker state to update
     await new Promise(resolve => setTimeout(resolve, 200));
-
-    // Clear previous mock calls
+    
+// Se limpian los mocks
     (mockRes.status as jest.Mock).mockClear();
     (mockRes.json as jest.Mock).mockClear();
-
-    // Now the circuit should be open
+  
+// Se intenta realizar una operación después de abrir el circuito
     await failingOperation(
       mockReq as Request,
-      mockRes as Response,
+      mockRes as Response, 
       nextFunction
     );
-
+  
     expect(mockRes.status).toHaveBeenCalledWith(503);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: ERROR_MESSAGES.SERVICE_UNAVAILABLE,
