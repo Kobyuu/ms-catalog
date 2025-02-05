@@ -9,9 +9,7 @@
     "dev": "nodemon src/index.ts",
     "db:seed": "ts-node src/admin/scripts/seedDatabase.ts",
     "db:migrate": "sequelize-cli db:migrate",
-    "db:rollback": "sequelize-cli db:migrate:undo",
-    "admin:cleanup": "ts-node src/admin/scripts/cleanup.ts",
-    "admin:report": "ts-node src/admin/scripts/generateReport.ts"
+    "db:rollback": "sequelize-cli db:migrate:undo"
   },
   "dependencies": {
     "axios": "^1.7.9",
