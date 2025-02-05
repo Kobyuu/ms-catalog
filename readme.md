@@ -125,3 +125,72 @@ Este microservicio permite gestionar un catálogo de productos, incluyendo la ob
 Ejecutar los tests:
 ```sh
 npm test
+```
+
+### Configuración de Jest
+
+El proyecto está configurado para usar Jest con TypeScript. La configuración de Jest se encuentra en el archivo [jest.config.js](jest.config.js):
+
+```javascript
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+module.exports = {
+  preset: "ts-jest",
+  testEnvironment: "node",
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  transform: {
+    "^.+\\.tsx?$": ["ts-jest", { isolatedModules: true }],
+  },
+  setupFilesAfterEnv: ["./jest.setup.js"],
+  testTimeout: 30000,
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
+  detectOpenHandles: true,
+  forceExit: true,
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  }
+};
+```
+
+### Setup de Jest
+
+El archivo de setup de Jest [jest.setup.js](jest.setup.js) configura el entorno de pruebas, incluyendo el mock de Redis y la configuración de variables de entorno:
+
+```javascript
+const Redis = require('ioredis-mock');
+
+// Mock Redis globalmente
+jest.mock('ioredis', () => {
+  return jest.fn().mockImplementation(() => {
+    return new Redis();
+  });
+});
+
+// Configurar variables de entorno para tests
+process.env.NODE_ENV = 'test';
+process.env.REDIS_HOST = 'localhost';
+process.env.REDIS_PORT = '6379';
+
+// Silenciar logs en las pruebas
+global.console = {
+  ...console,
+  log: jest.fn(), // Desactiva console.log
+  warn: jest.fn(),
+  error: console.error, // Mantén los errores visibles
+};
+
+beforeAll(() => {
+  process.env.NODE_ENV = 'test';
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+afterAll(async () => {
+  // Cierra la conexión de Redis correctamente
+  const { redis } = require('./src/config/redisClient');
+  await redis.quit();
+});
+```
