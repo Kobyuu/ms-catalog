@@ -4,18 +4,18 @@ import { redis } from '../config/redisClient';
 
 describe('Axios Retry Tests', () => {
   let mock: MockAdapter;
-
+// Antes de cada prueba, se crea una instancia de MockAdapter y se espía la función get de Redis
   beforeEach(() => {
     mock = new MockAdapter(axiosInstance);
     jest.spyOn(redis, 'get').mockResolvedValue(null);
     jest.spyOn(redis, 'setex').mockResolvedValue('OK');
   });
-
+// Después de cada prueba, se reinician los mocks y se limpian los mocks de Jest
   afterEach(() => {
     mock.reset();
     jest.clearAllMocks();
   });
-
+// Prueba para verificar que se reintenten las solicitudes fallidas
   it('should retry failed requests', async () => {
     let attemptCount = 0;
     const endpoint = '/test-endpoint';
@@ -37,7 +37,7 @@ describe('Axios Retry Tests', () => {
       fail('Should not throw an error');
     }
   });
-
+// Prueba para verificar que se use la caché de Redis para las solicitudes GET
   it('should use Redis cache for GET requests', async () => {
     const endpoint = '/cached-endpoint';
     const cachedData = { data: 'cached response' };
@@ -50,7 +50,7 @@ describe('Axios Retry Tests', () => {
     expect(response1.data).toEqual(cachedData);
     expect(redis.setex).toHaveBeenCalled();
 
-    // Second request - should use cache
+  // Segunda solicitud - caché
     jest.spyOn(redis, 'get').mockResolvedValueOnce(JSON.stringify(cachedData));
     
     try {
@@ -59,7 +59,7 @@ describe('Axios Retry Tests', () => {
       expect(error.response.data).toEqual(cachedData);
     }
   });
-
+// Prueba para verificar que se manejen los errores de red
   it('should handle network errors', async () => {
     const endpoint = '/network-error';
     mock.onGet(endpoint).networkError();
@@ -68,8 +68,8 @@ describe('Axios Retry Tests', () => {
       .rejects
       .toThrow('Network Error');
   });
-
+// Después de todas las pruebas, se cierra la conexión con Redis
   afterAll(async () => {
-    await redis.quit(); // Cierra la conexión con Redis
+    await redis.quit();
   });
 });

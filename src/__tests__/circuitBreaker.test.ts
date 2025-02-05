@@ -2,6 +2,7 @@ import { withCircuitBreaker } from '../middleware/circuitBreaker';
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/productService';
 import { redis } from '../config/redisClient';
+import { ERROR_MESSAGES } from '../config/constants';
 
 jest.mock('../services/productService');
 
@@ -18,8 +19,8 @@ describe('Circuit Breaker Tests', () => {
     };
     nextFunction = jest.fn();
     
-    // Mock the ProductService to simulate failures
-    (ProductService.getAllProducts as jest.Mock).mockRejectedValue(new Error('Service error'));
+    (ProductService.getAllProducts as jest.Mock)
+      .mockRejectedValue(new Error('Service error'));
   });
 
   afterEach(() => {
@@ -29,19 +30,26 @@ describe('Circuit Breaker Tests', () => {
   it('should handle service failure and open circuit', async () => {
     const failingOperation = withCircuitBreaker('getAllProducts');
     
-    // We need multiple consecutive failures to open the circuit
-    for (let i = 0; i < 3; i++) {
+    // Fail the circuit breaker threshold number of times
+    const threshold = 3;
+    for (let i = 0; i < threshold; i++) {
       await failingOperation(
         mockReq as Request,
         mockRes as Response,
         nextFunction
       );
+      // Add small delay between calls to ensure failures are registered
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
-    // Wait for circuit breaker to open
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Make sure we wait longer for the circuit breaker state to update
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // One more request after circuit is open
+    // Clear previous mock calls
+    (mockRes.status as jest.Mock).mockClear();
+    (mockRes.json as jest.Mock).mockClear();
+
+    // Now the circuit should be open
     await failingOperation(
       mockReq as Request,
       mockRes as Response,
@@ -50,12 +58,13 @@ describe('Circuit Breaker Tests', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(503);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Service is temporarily unavailable',
+      error: ERROR_MESSAGES.SERVICE_UNAVAILABLE,
       statusCode: 503
     });
   });
 
+// Después de todas las pruebas, se cierra la conexión con Redis
   afterAll(async () => {
-    await redis.quit(); // Cierra la conexión con Redis
+    await redis.quit(); 
   });
 });

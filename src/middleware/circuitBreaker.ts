@@ -1,56 +1,93 @@
 import CircuitBreaker from 'opossum';
 import { Request, Response, NextFunction } from 'express';
-import { ProductService } from '../services/productService';
-import { ERROR_MESSAGES } from 'src/config/constants';
+import { ProductService, CustomError } from '../services/productService';
+import { ERROR_MESSAGES } from '../config/constants';
 
-// Configuración del circuit breaker
-const breakerOptions = {
-  timeout: 3000,
-  errorThresholdPercentage: 30,
-  resetTimeout: 10000,
-  volumeThreshold: 1,
-  rollingCountTimeout: 10000,
-  rollingCountBuckets: 10,
+enum State {
+  CLOSED,
+  OPEN,
+  HALF_OPEN
+}
+
+export class CustomCircuitBreaker {
+  private state: State = State.CLOSED;
+  private failureCount: number = 0;
+  private nextAttempt: number = Date.now();
+  private readonly failureThreshold: number = 3;
+  private readonly resetTimeout: number = 60000; // 60 seconds
+
+  constructor(private operation: Function) {}
+
+  get opened(): boolean {
+    return this.state === State.OPEN;
+  }
+
+  private success(): void {
+    this.failureCount = 0;
+    this.state = State.CLOSED;
+  }
+
+  private fail(): void {
+    this.failureCount++;
+    if (this.failureCount >= this.failureThreshold) {
+      this.state = State.OPEN;
+      this.nextAttempt = Date.now() + this.resetTimeout;
+      console.log(`Circuit Breaker ${this.operation.name} is now OPEN`);
+    }
+  }
+
+  private halfOpen(): void {
+    this.state = State.HALF_OPEN;
+  }
+
+  private async fallback(...args: any[]): Promise<any> {
+    // Implement your fallback logic here
+    throw new CustomError(503, ERROR_MESSAGES.SERVICE_UNAVAILABLE);
+  }
+
+  async fire(...args: any[]): Promise<any> {
+    if (this.opened) {
+      if (Date.now() > this.nextAttempt) {
+        this.halfOpen();
+      } else {
+        return this.fallback(...args);
+      }
+    }
+
+    try {
+      const result = await this.operation(...args);
+      this.success();
+      return result;
+    } catch (error: any) {
+      // Only count as failure if it's not a business error (404, 400, etc)
+      if (!error.statusCode || error.statusCode >= 500) {
+        this.fail();
+      }
+      throw error;
+    }
+  }
+}
+
+// Create breakers for each operation
+
+export const breakers = {
+  getAllProducts: new CustomCircuitBreaker(ProductService.getAllProducts),
+  getProductById: new CustomCircuitBreaker(ProductService.getProductById),
+  createProduct: new CustomCircuitBreaker(ProductService.createProduct),
+  updateProduct: new CustomCircuitBreaker(ProductService.updateProduct),
+  toggleActivate: new CustomCircuitBreaker(ProductService.toggleActivate)
 };
-// Crear un circuit breaker para cada operación
-const breakers = {
-  getAllProducts: new CircuitBreaker(ProductService.getAllProducts, breakerOptions),
-  getProductById: new CircuitBreaker(ProductService.getProductById, breakerOptions),
-  createProduct: new CircuitBreaker(ProductService.createProduct, breakerOptions),
-  updateProduct: new CircuitBreaker(ProductService.updateProduct, breakerOptions),
-  toggleActivate: new CircuitBreaker(ProductService.toggleActivate, breakerOptions)
-};
 
-// Configurar fallback para cada uno
-Object.entries(breakers).forEach(([operation, breaker]) => {
-  breaker.fallback(() => {
-    return Promise.reject({
-      statusCode: 503,
-      error: `El servicio ${operation} está deshabilitado temporalmente.`
-    });
-  });
-
-  // Monitorear eventos
-  breaker.on('open', () => console.log(`Circuit Breaker ${operation} is now OPEN`));
-  breaker.on('close', () => console.log(`Circuit Breaker ${operation} is now CLOSED`));
-  breaker.on('halfOpen', () => console.log(`Circuit Breaker ${operation} is now HALF-OPEN`));
-  breaker.on('fallback', () => console.log(`Circuit Breaker ${operation} fallback executed`));
-});
-
-// Middleware para circuit breaker
+// Middleware for circuit breaker
 export const withCircuitBreaker = (operation: keyof typeof breakers) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const breaker = breakers[operation];
 
     try {
       if (breaker.opened) {
-        res.status(503).json({
-          error: ERROR_MESSAGES.SERVICE_UNAVAILABLE,
-          statusCode: 503
-        });
-        return;
+        throw new CustomError(503, ERROR_MESSAGES.SERVICE_UNAVAILABLE);
       }
-      // Ejecutar la operación correspondiente
+
       const params = operation === 'getProductById' || operation === 'toggleActivate' 
         ? [req.params.id]
         : operation === 'updateProduct' 
@@ -58,16 +95,16 @@ export const withCircuitBreaker = (operation: keyof typeof breakers) => {
           : operation === 'createProduct'
             ? [req.body]
             : [];
-      // Ejecutar la operación y pasar el resultado al siguiente middleware
+
       const result = await breaker.fire(...params);
       res.locals.result = result;
       next();
     } catch (error: any) {
-      if (error?.statusCode) {
-        res.status(error.statusCode).json(error);
-        return;
-      }
-      next(error);
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        error: error.message,
+        statusCode
+      });
     }
   };
 };

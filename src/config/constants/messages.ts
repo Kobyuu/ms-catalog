@@ -10,6 +10,7 @@ export const ERROR_MESSAGES = {
   
   INVALID_ID: "El ID debe ser un número entero",
   EMPTY_NAME: "El nombre del producto es requerido",
+  INVALID_NAME: "El nombre del producto es inválido",
   INVALID_PRICE: "El precio debe ser un valor numérico válido",
   EMPTY_PRICE: "El precio es requerido",
   PRICE_POSITIVE: "El precio debe ser mayor a 0",
@@ -24,8 +25,13 @@ export const ERROR_MESSAGES = {
   REDIS_CONNECTION: "Error al conectar a Redis",
 
   ENV_VAR_NOT_DEFINED: "Variable de entorno no definida",
-  SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente"
+  SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente",
 
+  DELETE_ERROR: "Error al eliminar el producto",
+  ACTIVATION_ERROR: "Error al activar el producto",
+  DEACTIVATION_ERROR: "Error al desactivar el producto",
+
+  INVALID_DATA: "Datos de producto inválidos"
 };
 
 export const SUCCESS_MESSAGES = {
@@ -33,7 +39,10 @@ export const SUCCESS_MESSAGES = {
     PRODUCT_UPDATED: "Producto actualizado exitosamente",
     PRODUCT_FETCHED: "Producto obtenido exitosamente",
     PRODUCTS_FETCHED: "Productos obtenidos exitosamente",
-    PRODUCT_ACTIVATED: "Estado del producto actualizado exitosamente",
+    PRODUCT_ACTIVATED: "Producto activado exitosamente",
     DB_CONNECTION: "Conexión exitosa a la base de datos",
-    REDIS_CONNECTION: "Conexión exitosa a Redis"
+    REDIS_CONNECTION: "Conexión exitosa a Redis",
+    PRODUCT_DELETED: "Producto eliminado exitosamente",
+    PRODUCT_DEACTIVATED: "Producto desactivado exitosamente",
+
 };
