@@ -3,17 +3,21 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15
-    container_name: ms-catalog_postgres
+    container_name: ms-purchase_postgres
     environment:
-      POSTGRES_DB: ms-catalog
+      POSTGRES_DB: ms-purchase
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
     ports:
-      - "6432:5432"
+      - "9432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - microservicios-red
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      retries: 5
 
   # Redis
   redis:
@@ -35,7 +39,6 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:1234@postgres:5432/ms-catalog
       PORT: 4001
-      NODE_ENV: production
       REDIS_URL: redis://redis:6379
       CACHE_EXPIRY: 3600
       RETRY_ATTEMPTS: 3
@@ -43,8 +46,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
     command: npm run dev

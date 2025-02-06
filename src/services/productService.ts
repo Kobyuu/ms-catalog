@@ -1,8 +1,8 @@
 import { Transaction } from "sequelize";
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE, ERROR_MESSAGES, SUCCESS_MESSAGES } from "../config/constants";
-import { axiosInstance } from "../config/axiosClient";
+import { DATABASE, ERROR_MESSAGES } from "../config/constants";
+import { cacheService } from '../services/redisCacheService';
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 import { ProductUtils } from '../utils/productUtils';
 
@@ -29,17 +29,34 @@ export class ProductService {
 
   // Obtener todos los productos desde la base de datos
   static async getAllProducts(): Promise<ProductAttributes[]> {
+    const cacheKey = 'products:all';
     try {
-      const products = await Product.findAll({
-        order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
-        attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-      });
-      return products;
+        // Verificar caché
+        const cachedProducts = await cacheService.getFromCache(cacheKey);
+        if (cachedProducts) {
+            console.log('Returning cached products:', cachedProducts);
+            return cachedProducts;
+        }
+
+        // Obtener de base de datos
+        const products = await Product.findAll({
+            order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
+            attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
+            raw: true // Agregar esto para obtener objetos planos
+        });
+        
+        console.log('Products from DB:', products);
+
+        if (products.length > 0) {
+            await cacheService.setToCache(cacheKey, products);
+        }
+
+        return products;
     } catch (error) {
-      throw new Error(ERROR_MESSAGES.FETCH_ERROR);
+        console.error('Error getting products:', error);
+        throw new Error(ERROR_MESSAGES.FETCH_ERROR);
     }
   }
-
   // Buscar un producto específico por su ID
   static async getProductById(id: string): Promise<ProductAttributes> {
     const product = await Product.findByPk(id, {
@@ -65,8 +82,9 @@ export class ProductService {
     if (!validation.isValid) {
       throw new CustomError(400, validation.error || ERROR_MESSAGES.INVALID_DATA);
     }
+  
     // Actualiza el producto en la base de datos
-    return ProductService.withTransaction(async (transaction) => {
+    const updatedProduct = await ProductService.withTransaction(async (transaction) => {
       const product = await Product.findByPk(id, { transaction });
       if (!product) {
         throw new CustomError(404, ERROR_MESSAGES.NOT_FOUND);
@@ -74,26 +92,30 @@ export class ProductService {
       await product.update(productData, { transaction });
       return product;
     });
+  
+    // Limpiar el caché después de actualizar
+    await cacheService.clearCache(['products:all', `product:${id}`]);
+    return updatedProduct;
   }
-
   // Alternar el estado de activación de un producto
   static async toggleActivate(id: string): Promise<ProductAttributes> {
-    const transaction = await db.transaction(); // Inicia la transacción manualmente
-  
-    try {
+    return ProductService.withTransaction(async (transaction) => {
       const product = await Product.findByPk(id, { transaction });
       if (!product) {
-        throw new Error(ERROR_MESSAGES.NOT_FOUND);
+        throw new CustomError(404, ERROR_MESSAGES.NOT_FOUND);
       }
   
       const newStatus = !product.activate;
       await product.update({ activate: newStatus }, { transaction });
+      
+      // Limpiar el caché después de cambiar el estado
+      await cacheService.clearCache([
+        'products:all',
+        `product:${id}`,
+        'products:active'
+      ]);
   
-      await transaction.commit(); // Confirma la transacción
-      return product.reload();
-    } catch (error) {
-      await transaction.rollback(); // Revierte la transacción en caso de error
-      throw error;
-    }
+      return product;
+    });
   }
-}
+};

@@ -2,6 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import { ENV } from '../config/constants';
 import { redis } from '../config/redisClient';
+import { cacheService } from '../services/redisCacheService';
+
 
 // Crear instancia de Axios
 const axiosInstance: AxiosInstance = axios.create();
@@ -19,22 +21,22 @@ axiosRetry(axiosInstance, {
 // Interceptor para cache con Redis
 axiosInstance.interceptors.request.use(async (config) => {
   const cacheKey = `cache:${config.url}`;
-  const cachedData = await redis.get(cacheKey);
-
-  if (cachedData && config.method === 'get') {
-    return Promise.reject({
-      config,
-      response: { data: JSON.parse(cachedData) }
-    });
+  if (config.method === 'get') {
+    const cachedData = await cacheService.getFromCache(cacheKey);
+    if (cachedData) {
+      return Promise.reject({
+        config,
+        response: { data: cachedData }
+      });
+    }
   }
-
   return config;
 });
 // Interceptor para cache con Redis
 axiosInstance.interceptors.response.use(async (response) => {
   if (response.config.method === 'get') {
     const cacheKey = `cache:${response.config.url}`;
-    await redis.setex(cacheKey, 3600, JSON.stringify(response.data));
+    await cacheService.setToCache(cacheKey, response.data);
   }
   return response;
 });

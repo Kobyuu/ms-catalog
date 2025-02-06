@@ -10,6 +10,6 @@ server.use(express.json())
 server.use(rateLimiter)
 
 // Configuración de rutas
-server.use('/api/products', router)
+server.use('/api/product', router)
 
 export default server
