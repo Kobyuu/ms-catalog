@@ -31,32 +31,32 @@ export class ProductService {
   static async getAllProducts(): Promise<ProductAttributes[]> {
     const cacheKey = 'products:all';
     try {
-        // Verificar caché
-        const cachedProducts = await cacheService.getFromCache(cacheKey);
-        if (cachedProducts) {
-            console.log('Returning cached products:', cachedProducts);
-            return cachedProducts;
-        }
-
-        // Obtener de base de datos
-        const products = await Product.findAll({
+        // Check DB first
+        const dbProducts = await Product.findAll({
             order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
             attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-            raw: true // Agregar esto para obtener objetos planos
+            raw: true
         });
-        
-        console.log('Products from DB:', products);
 
-        if (products.length > 0) {
-            await cacheService.setToCache(cacheKey, products);
+        // If we have products in DB
+        if (dbProducts.length > 0) {
+            // Check cache
+            const cachedProducts = await cacheService.getFromCache(cacheKey);
+            if (cachedProducts) {
+                return cachedProducts;
+            }
+            // Update cache with DB products
+            await cacheService.setToCache(cacheKey, dbProducts);
+            return dbProducts;
         }
 
-        return products;
+        // If no products in DB, return empty array
+        return dbProducts;
     } catch (error) {
         console.error('Error getting products:', error);
         throw new Error(ERROR_MESSAGES.FETCH_ERROR);
     }
-  }
+}
   // Buscar un producto específico por su ID
   static async getProductById(id: string): Promise<ProductAttributes> {
     const product = await Product.findByPk(id, {
@@ -72,6 +72,10 @@ export class ProductService {
   static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
     return ProductService.withTransaction(async (transaction) => {
       const product = await Product.create(productData, { transaction });
+      
+      // Limpiar el caché después de crear un producto
+      await cacheService.clearCache(['products:all']);
+      
       return product;
     });
   }
