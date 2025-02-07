@@ -1,15 +1,26 @@
 import { DEFAULTS } from './defaults';
 import '../validateEnv';
 
+const {
+    NODE_ENV,
+    PORT,
+    RETRY_ATTEMPTS,
+    REDIS_URL,
+    REDIS_HOST,
+    REDIS_PORT,
+    CACHE_EXPIRY,
+    RETRY_DELAY
+} = process.env;
+
 export const ENV = {
-    NODE_ENV: process.env.NODE_ENV || DEFAULTS.NODE_ENV,
-    PORT: Number(process.env.PORT) || DEFAULTS.PORT,
-    RETRY_LIMIT: Number(process.env.RETRY_ATTEMPTS) || DEFAULTS.RETRY_ATTEMPTS,
+    NODE_ENV: NODE_ENV || DEFAULTS.NODE_ENV,
+    PORT: Number(PORT) || DEFAULTS.PORT,
+    RETRY_LIMIT: Number(RETRY_ATTEMPTS) || DEFAULTS.RETRY_ATTEMPTS,
     REDIS: {
-        URL: process.env.REDIS_URL || DEFAULTS.REDIS.URL,
-        HOST: process.env.REDIS_HOST || DEFAULTS.REDIS.HOST,
-        PORT: Number(process.env.REDIS_PORT) || DEFAULTS.REDIS.PORT,
-        CACHE_EXPIRY: Number(process.env.CACHE_EXPIRY) || DEFAULTS.REDIS.CACHE_EXPIRY,
-        RETRY_DELAY: Number(process.env.RETRY_DELAY) || DEFAULTS.REDIS.RETRY_DELAY
+        URL: REDIS_URL || DEFAULTS.REDIS.URL,
+        HOST: REDIS_HOST || DEFAULTS.REDIS.HOST,
+        PORT: Number(REDIS_PORT) || DEFAULTS.REDIS.PORT,
+        CACHE_EXPIRY: Number(CACHE_EXPIRY) || DEFAULTS.REDIS.CACHE_EXPIRY,
+        RETRY_DELAY: Number(RETRY_DELAY) || DEFAULTS.REDIS.RETRY_DELAY
     }
 };
