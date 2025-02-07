@@ -46,3 +46,9 @@ export const SUCCESS_MESSAGES = {
     PRODUCT_DEACTIVATED: "Producto desactivado exitosamente",
 
 };
+
+export const CIRCUIT_BREAKER_MESSAGES = {
+  OPEN: 'Circuito abierto',
+  HALF_OPEN: 'Circuito medio abierto',
+  CLOSED: 'Circuito cerrado'
+};
