@@ -3,39 +3,25 @@ import { param } from 'express-validator';
 import { handleInputErrors } from './middleware/handleInputErrors';
 import { ProductController } from './controllers/productController';
 import { ERROR_MESSAGES } from './config/constants/messages';
-import { withCircuitBreaker } from './middleware/circuitBreaker';
 
 const router = Router();
 
+// Validación de ID
+const validateId = param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID);
+
 // Obtener todos los productos
-router.get('/', withCircuitBreaker('getAllProducts') as RequestHandler, 
-  ProductController.getProducts as RequestHandler
-);
+router.get('/', ProductController.getProducts as RequestHandler);
+
 // Obtener un producto por su ID
-router.get('/:id',
-  param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
-  handleInputErrors,
-  withCircuitBreaker('getProductById') as RequestHandler,
-  ProductController.getProductById as RequestHandler
-);
+router.get('/:id', validateId, handleInputErrors, ProductController.getProductById as RequestHandler);
+
 // Crear un nuevo producto
-router.post('/', 
-  withCircuitBreaker('createProduct') as RequestHandler,
-  ProductController.createProduct as RequestHandler
-);
+router.post('/', ProductController.createProduct as RequestHandler);
+
 // Actualizar un producto existente
-router.put('/:id',
-  param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
-  handleInputErrors,
-  withCircuitBreaker('updateProduct') as RequestHandler,
-  ProductController.updateProduct as RequestHandler
-);
+router.put('/:id', validateId, handleInputErrors, ProductController.updateProduct as RequestHandler);
+
 // Activar o desactivar un producto
-router.patch('/:id',
-  param('id').isInt().withMessage(ERROR_MESSAGES.INVALID_ID),
-  handleInputErrors,
-  withCircuitBreaker('toggleActivate') as RequestHandler,
-  ProductController.updateActivate as RequestHandler
-);
+router.patch('/:id', validateId, handleInputErrors, ProductController.updateActivate as RequestHandler);
 
 export default router;
