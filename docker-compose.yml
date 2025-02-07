@@ -3,13 +3,13 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15
-    container_name: ms-purchase_postgres
+    container_name: ms-catalog_postgres
     environment:
-      POSTGRES_DB: ms-purchase
+      POSTGRES_DB: ms-catalog
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
     ports:
-      - "9432:5432"
+      - "6432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
