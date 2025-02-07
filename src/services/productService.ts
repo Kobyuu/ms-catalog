@@ -31,32 +31,36 @@ export class ProductService {
   static async getAllProducts(): Promise<ProductAttributes[]> {
     const cacheKey = 'products:all';
     try {
-        // Check DB first
+        // Primero intentar obtener del caché
+        const cachedProducts = await cacheService.getFromCache(cacheKey);
+        if (cachedProducts) {
+            console.log('Returning cached products');
+            return cachedProducts;
+        }
+
+        // Si no hay en caché, buscar en DB
+        console.log('Fetching products from DB');
         const dbProducts = await Product.findAll({
             order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
             attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
             raw: true
         });
 
-        // If we have products in DB
+        // Actualizar caché si hay productos
         if (dbProducts.length > 0) {
-            // Check cache
-            const cachedProducts = await cacheService.getFromCache(cacheKey);
-            if (cachedProducts) {
-                return cachedProducts;
-            }
-            // Update cache with DB products
+            console.log('Updating cache with DB products');
             await cacheService.setToCache(cacheKey, dbProducts);
-            return dbProducts;
         }
 
-        // If no products in DB, return empty array
         return dbProducts;
     } catch (error) {
-        console.error('Error getting products:', error);
-        throw new Error(ERROR_MESSAGES.FETCH_ERROR);
+        console.error('Error in getAllProducts:', error);
+        if (error instanceof Error) {
+            throw new CustomError(500, error.message);
+        }
+        throw new CustomError(500, ERROR_MESSAGES.FETCH_ERROR);
     }
-}
+  }
   // Buscar un producto específico por su ID
   static async getProductById(id: string): Promise<ProductAttributes> {
     const product = await Product.findByPk(id, {

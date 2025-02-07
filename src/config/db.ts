@@ -16,14 +16,21 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 });
 // Conectar a la base de datos
 export async function connectDb(): Promise<void> {
-    try {
-        await sequelize.authenticate();
-        await sequelize.sync();
-        console.log(colors.bgGreen.white(SUCCESS_MESSAGES.DB_CONNECTION));
-    } catch (error) {
-        console.error(colors.bgRed.white(ERROR_MESSAGES.DB_CONNECTION), error);
-        throw error;
+    const maxRetries = 5;
+    let currentTry = 1;
+
+    while (currentTry <= maxRetries) {
+        try {
+            await sequelize.authenticate();
+            await sequelize.sync();
+            console.log(colors.bgGreen.white(SUCCESS_MESSAGES.DB_CONNECTION));
+            return;
+        } catch (error) {
+            console.error(colors.bgRed.white(`Intento ${currentTry} de ${maxRetries}: ${ERROR_MESSAGES.DB_CONNECTION}`), error);
+            if (currentTry === maxRetries) throw error;
+            await new Promise(resolve => setTimeout(resolve, 5000)); // espera 5 segundos
+            currentTry++;
+        }
     }
 }
-
 export default sequelize;

@@ -13,8 +13,8 @@ export class CustomCircuitBreaker {
   private state: State = State.CLOSED;
   private failureCount: number = 0;
   private nextAttempt: number = Date.now();
-  private readonly failureThreshold: number = 3;
-  private readonly resetTimeout: number = 60000; // 60 seconds
+  private readonly failureThreshold: number = 5; // Aumentar el umbral
+  private readonly resetTimeout: number = 30000; // Reducir el tiempo de reset a 30 segundos
 
   constructor(private operation: Function) {}
 
@@ -29,11 +29,11 @@ export class CustomCircuitBreaker {
 
   private fail(): void {
     this.failureCount++;
-    console.log(`Failure count: ${this.failureCount}`);
+    console.log(`Circuit Breaker failure count: ${this.failureCount}`);
     if (this.failureCount >= this.failureThreshold) {
       this.state = State.OPEN;
       this.nextAttempt = Date.now() + this.resetTimeout;
-      console.log(`Circuit Breaker ${this.operation.name} is now OPEN`);
+      console.log('Circuit Breaker opened');
     }
   }
 
