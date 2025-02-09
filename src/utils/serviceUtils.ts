@@ -26,7 +26,20 @@ function sendSuccess(res: Response, data: any, message: string, statusCode: numb
 }
 // Función para manejar errores
 function handleError(res: Response, error: Error, defaultMessage: string): void {
-  console.error(error);
-  const statusCode = error.message === ERROR_MESSAGES.NOT_FOUND ? HTTP.NOT_FOUND : HTTP.SERVER_ERROR;
-  res.status(statusCode).json(ProductUtils.formatErrorResponse(error, defaultMessage));
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(error);
+  }
+  // Si ya se enviaron los headers, no se hace nada.
+  if (res.headersSent) {
+    return;
+  }
+
+  // Si el error tiene una propiedad statusCode (por ejemplo, un CustomError)
+  const statusCode = (error as any).statusCode || HTTP.SERVER_ERROR;
+
+  // Usamos el mensaje del error si existe, de lo contrario usamos el mensaje por defecto.
+  const message = (error as any).message || defaultMessage;
+
+  res.status(statusCode).json(ProductUtils.formatErrorResponse(error, message));
 }
+
