@@ -1,72 +1,58 @@
-import { withCircuitBreaker } from '../middleware/circuitBreaker';
-import { Request, Response, NextFunction } from 'express';
-import { ProductService } from '../services/productService';
-import { redis } from '../config/redisClient';
-import { ERROR_MESSAGES } from '../config/constants';
+import request from 'supertest';
+import express, { RequestHandler } from 'express';
+import breaker, { withCircuitBreaker } from '../middleware/circuitBreaker';
+import { ERROR_MESSAGES, HTTP } from '../config/constants';
 
-jest.mock('../services/productService');
+const app = express();
 
-describe('Circuit Breaker Tests', () => {
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response>;
-  let nextFunction: NextFunction;
-// Antes de cada prueba, se configuran los mocks y se simula un error en el servicio
-  beforeEach(() => {
-    mockReq = {};
-    mockRes = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn()
-    };
-    nextFunction = jest.fn();
-    
-    (ProductService.getAllProducts as jest.Mock)
-      .mockRejectedValue(new Error('Service error'));
-  });
-// Después de cada prueba, se limpian los mocks
-  afterEach(() => {
-    jest.clearAllMocks();
+// Cast the middleware to RequestHandler to match Express types
+app.get('/test', withCircuitBreaker as RequestHandler, (req, res) => {
+  res.status(200).send('Success');
+});
+
+// Pruebas para el middleware de Circuit Breaker
+describe('CircuitBreaker Middleware', () => {
+  it('should allow the request to pass through when the circuit is closed', async () => {
+    const response = await request(app).get('/test');
+    expect(response.status).toBe(200);
+    expect(response.text).toBe('Success');
   });
 
-  it('should handle service failure and open circuit', async () => {
-    const failingOperation = withCircuitBreaker('getAllProducts');
+  it('should return service unavailable when the circuit is open', async () => {
+    breaker.open();
 
-    (ProductService.getAllProducts as jest.Mock).mockRejectedValue({
-      response: { status: 500, data: 'Service error' }
-    });
-    
-// Se simulan 3 errores consecutivos para abrir el circuito
-    const threshold = 3;
-    for (let i = 0; i < threshold; i++) {
-      await failingOperation(
-        mockReq as Request, 
-        mockRes as Response,
-        nextFunction
-      );
-// Se espera un tiempo para que el circuito se abra completamente
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // Asegurar que el estado se propague
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const response = await request(app).get('/test');
+    expect(response.status).toBe(HTTP.SERVICE_UNAVAILABLE);
+    expect(response.body).toEqual({ message: ERROR_MESSAGES.SERVICE_UNAVAILABLE });
+
+    breaker.close();
+  });
+
+  it('should handle errors and open the circuit', async () => {
+    // Generamos múltiples fallos para superar el umbral de error
+    for (let i = 0; i < 5; i++) {
+      try {
+        await breaker.fire(() => Promise.reject(new Error('Test error')));
+      } catch (err) {
+        // Ignoramos los errores ya que queremos solo disparar el fallo
+      }
     }
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-// Se limpian los mocks
-    (mockRes.status as jest.Mock).mockClear();
-    (mockRes.json as jest.Mock).mockClear();
-  
-// Se intenta realizar una operación después de abrir el circuito
-    await failingOperation(
-      mockReq as Request,
-      mockRes as Response, 
-      nextFunction
-    );
-  
-    expect(mockRes.status).toHaveBeenCalledWith(503);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error: ERROR_MESSAGES.SERVICE_UNAVAILABLE,
-      statusCode: 503
-    });
-  });
 
-// Después de todas las pruebas, se cierra la conexión con Redis
-  afterAll(async () => {
-    await redis.quit(); 
+    // Esperamos a que el breaker se abra realmente
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Verificamos que el breaker realmente esté abierto
+    expect(breaker.opened).toBe(true);
+
+    // Ahora hacemos la solicitud y verificamos que devuelva 503
+    const response = await request(app).get('/test');
+    expect(response.status).toBe(HTTP.SERVICE_UNAVAILABLE);
+    expect(response.body).toEqual({ message: ERROR_MESSAGES.SERVICE_UNAVAILABLE });
+
+    // Restablecemos el estado del circuito para futuras pruebas
+    breaker.close();
   });
 });
