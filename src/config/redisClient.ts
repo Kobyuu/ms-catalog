@@ -10,7 +10,7 @@ const redis = process.env.NODE_ENV === 'test'
       host: ENV.REDIS.HOST,
       port: ENV.REDIS.PORT,
       retryStrategy: (times) => {
-        return Math.min(times * 50, 2000);
+        return Math.min(times * 50, ENV.REDIS.RETRY_DELAY);
       }
     });
 
@@ -20,7 +20,7 @@ redis.on('connect', () => {
 
 redis.on('error', (err) => {
   console.log(ERROR_MESSAGES.REDIS_CONNECTION);
-  console.error('Redis Client Error:', err);
+  console.error(ERROR_MESSAGES.REDIS_CLIENT_ERROR, err);
 });
 
 export { redis };
