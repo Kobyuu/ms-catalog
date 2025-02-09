@@ -53,3 +53,14 @@ export const CIRCUIT_BREAKER_MESSAGES = {
   HALF_OPEN: 'Circuito medio abierto',
   CLOSED: 'Circuito cerrado'
 };
+
+export const LOG_MESSAGES = {
+  CACHE: {
+    RETURNING: 'Returning cached products',
+    FETCHING: 'Fetching products from DB',
+    UPDATING: 'Updating cache with DB products'
+  },
+  ERROR: {
+    GET_ALL: 'Error in getAllProducts:'
+  }
+};
