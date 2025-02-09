@@ -1,48 +1,15 @@
 import { Transaction } from "sequelize";
-import CircuitBreaker from 'opossum';
 import Product from "../models/Product.model";
 import db from "../config/db";
-import { DATABASE, ERROR_MESSAGES, HTTP, CIRCUIT_BREAKER_MESSAGES } from "../config/constants";
+import { DATABASE, ERROR_MESSAGES, HTTP, LOG_MESSAGES, CACHE_KEYS, CIRCUIT_OPERATIONS } from "../config/constants";
 import { cacheService } from '../services/redisCacheService';
 import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../types/product.types";
 import { ProductUtils } from '../utils/productUtils';
-
-const breakerOptions = {
-  timeout: 3000,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000
-};
-
-export class CustomError extends Error {
-  constructor(public statusCode: number, message: string) {
-    super(message);
-    this.name = 'CustomError';
-  }
-}
+import { CircuitBreakerService } from '../middleware/circuitBreaker';
+import { CustomError } from '../utils/CustomError';
 
 export class ProductService {
-  private static breakers: { [key: string]: CircuitBreaker } = {};
-
-  private static getBreaker(operationName: string, operation: (...args: unknown[]) => Promise<unknown>): CircuitBreaker {
-    if (!this.breakers[operationName]) {
-      const breaker = new CircuitBreaker(operation, breakerOptions);
-      
-      breaker.fallback(() => {
-        throw new CustomError(
-          HTTP.SERVICE_UNAVAILABLE, 
-          ERROR_MESSAGES.SERVICE_UNAVAILABLE
-        );
-      });
-
-      breaker.on('open', () => console.log(`${operationName}: ${CIRCUIT_BREAKER_MESSAGES.OPEN}`));
-      breaker.on('halfOpen', () => console.log(`${operationName}: ${CIRCUIT_BREAKER_MESSAGES.HALF_OPEN}`));
-      breaker.on('close', () => console.log(`${operationName}: ${CIRCUIT_BREAKER_MESSAGES.CLOSED}`));
-
-      this.breakers[operationName] = breaker;
-    }
-    return this.breakers[operationName];
-  }
-
+  // Método para realizar operaciones con transacciones
   private static async withTransaction<T>(operation: (transaction: Transaction) => Promise<T>): Promise<T> {
     const transaction = await db.transaction();
     try {
@@ -54,18 +21,17 @@ export class ProductService {
       throw error;
     }
   }
-
+// Obtener la lista de todos los productos
   static async getAllProducts(): Promise<ProductAttributes[]> {
-    const breaker = this.getBreaker('getAllProducts', async () => {
-      const cacheKey = 'products:all';
+    const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.GET_ALL, async () => {
       try {
-        const cachedProducts = await cacheService.getFromCache(cacheKey);
+        const cachedProducts = await cacheService.getFromCache(CACHE_KEYS.PRODUCTS.ALL);
         if (cachedProducts) {
-          console.log('Returning cached products');
+          console.log(LOG_MESSAGES.CACHE.RETURNING);
           return cachedProducts;
         }
 
-        console.log('Fetching products from DB');
+        console.log(LOG_MESSAGES.CACHE.FETCHING);
         const dbProducts = await Product.findAll({
           order: [[DATABASE.SORT_CONFIG.FIELD, DATABASE.SORT_CONFIG.ORDER]],
           attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
@@ -73,17 +39,17 @@ export class ProductService {
         });
 
         if (dbProducts.length > 0) {
-          console.log('Updating cache with DB products');
-          await cacheService.setToCache(cacheKey, dbProducts);
+          console.log(LOG_MESSAGES.CACHE.UPDATING);
+          await cacheService.setToCache(CACHE_KEYS.PRODUCTS.ALL, dbProducts);
         }
 
         return dbProducts;
       } catch (error) {
-        console.error('Error in getAllProducts:', error);
+        console.error(LOG_MESSAGES.ERROR.GET_ALL, error);
         if (error instanceof Error) {
-          throw new CustomError(500, error.message);
+          throw new CustomError(HTTP.SERVER_ERROR, error.message);
         }
-        throw new CustomError(500, ERROR_MESSAGES.FETCH_ERROR);
+        throw new CustomError(HTTP.SERVER_ERROR, ERROR_MESSAGES.FETCH_ERROR);
       }
     });
 
@@ -91,12 +57,12 @@ export class ProductService {
   }
 
   static async getProductById(id: string): Promise<ProductAttributes> {
-    const breaker = this.getBreaker('getProductById', async () => {
+    const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.GET_BY_ID, async () => {
       const product = await Product.findByPk(id, {
         attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
       });
       if (!product) {
-        throw new CustomError(404, ERROR_MESSAGES.NOT_FOUND);
+        throw new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
       return product;
     });
@@ -105,10 +71,10 @@ export class ProductService {
   }
 
   static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
-    const breaker = this.getBreaker('createProduct', async () => {
+    const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.CREATE, async () => {
       return this.withTransaction(async (transaction) => {
         const product = await Product.create(productData, { transaction });
-        await cacheService.clearCache(['products:all']);
+        await cacheService.clearCache([CACHE_KEYS.PRODUCTS.ALL]);
         return product;
       });
     });
@@ -117,19 +83,22 @@ export class ProductService {
   }
 
   static async updateProduct(id: string, productData: ProductUpdateInput): Promise<ProductAttributes> {
-    const breaker = this.getBreaker('updateProduct', async () => {
+    const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.UPDATE, async () => {
       const validation = ProductUtils.validateProductData(productData);
       if (!validation.isValid) {
-        throw new CustomError(400, validation.error || ERROR_MESSAGES.INVALID_DATA);
+        throw new CustomError(HTTP.BAD_REQUEST, validation.error || ERROR_MESSAGES.INVALID_DATA);
       }
 
       return this.withTransaction(async (transaction) => {
         const product = await Product.findByPk(id, { transaction });
         if (!product) {
-          throw new CustomError(404, ERROR_MESSAGES.NOT_FOUND);
+          throw new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
         }
         await product.update(productData, { transaction });
-        await cacheService.clearCache(['products:all', `product:${id}`]);
+        await cacheService.clearCache([
+          CACHE_KEYS.PRODUCTS.ALL,
+          CACHE_KEYS.PRODUCTS.BY_ID(id)
+        ]);
         return product;
       });
     });
@@ -138,20 +107,20 @@ export class ProductService {
   }
 
   static async toggleActivate(id: string): Promise<ProductAttributes> {
-    const breaker = this.getBreaker('toggleActivate', async () => {
+    const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.TOGGLE, async () => {
       return this.withTransaction(async (transaction) => {
         const product = await Product.findByPk(id, { transaction });
         if (!product) {
-          throw new CustomError(404, ERROR_MESSAGES.NOT_FOUND);
+          throw new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
         }
 
         const newStatus = !product.activate;
         await product.update({ activate: newStatus }, { transaction });
         
         await cacheService.clearCache([
-          'products:all',
-          `product:${id}`,
-          'products:active'
+          CACHE_KEYS.PRODUCTS.ALL,
+          CACHE_KEYS.PRODUCTS.BY_ID(id),
+          CACHE_KEYS.PRODUCTS.ACTIVE
         ]);
 
         return product;
