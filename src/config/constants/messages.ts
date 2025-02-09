@@ -31,7 +31,8 @@ export const ERROR_MESSAGES = {
   ACTIVATION_ERROR: "Error al activar el producto",
   DEACTIVATION_ERROR: "Error al desactivar el producto",
 
-  INVALID_DATA: "Datos de producto inválidos"
+  INVALID_DATA: "Datos de producto inválidos",
+  REDIS_CLIENT_ERROR: "Redis Client Error:",
 };
 
 export const SUCCESS_MESSAGES = {
