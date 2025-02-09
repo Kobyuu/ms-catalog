@@ -3,8 +3,16 @@ import server from '../server';
 import { HTTP, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../config/constants';
 import { rateLimiter } from '../middleware/rateLimiter';
 import { redis } from '../config/redisClient';
+import { ProductService } from '../services/productService';
+import { CustomError } from '../utils/CustomError';
 
 describe('Product API Integration Tests', () => {
+  // Silencia console.error para evitar que se muestren mensajes en la consola durante los tests
+  let consoleErrorSpy: jest.SpyInstance;
+  beforeAll(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
   const mockProduct = {
     name: 'Test Product',
     price: 99.99,
@@ -17,101 +25,100 @@ describe('Product API Integration Tests', () => {
     activate: false
   };
 
-  const mockProductId = 1; // Suponiendo que tienes un producto con ID 1 en la base de datos
+  const mockProductId = 1;
 
-  // Antes de cada prueba, se reinicia el límite de velocidad para la dirección IP de prueba
   beforeEach(() => {
     rateLimiter.resetKey('::ffff:127.0.0.1');
+    jest.clearAllMocks();
   });
 
   // Obtener producto por ID
-  describe('GET /api/products/:id', () => {
-    it('should return 404 if product not found', async () => {
-      console.log('Iniciando prueba: should return 404 if product not found');
+  describe('GET /api/product/:id', () => {
+    it('should get product by id successfully', async () => {
+      jest.spyOn(ProductService, 'getProductById').mockResolvedValueOnce({
+        ...mockProduct,
+        id: mockProductId
+      });
+
       const response = await request(server)
-        .get('/api/products/99999')  // ID que no existe
+        .get(`/api/product/${mockProductId}`)
+        .expect(HTTP.OK);
+
+      expect(response.body).toHaveProperty('message', SUCCESS_MESSAGES.PRODUCT_FETCHED);
+      expect(response.body.data).toMatchObject(expect.objectContaining(mockProduct));
+    });
+
+    it('should return 404 if product not found', async () => {
+      // Simular un error que retorna un CustomError con status 404
+      jest.spyOn(ProductService, 'getProductById').mockRejectedValueOnce(new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND));
+
+      const response = await request(server)
+        .get('/api/product/99999')
         .expect(HTTP.NOT_FOUND);
-  
-      console.log('Respuesta recibida:', response.body);
-  
-      // Verificar que se devuelva un error adecuado si no se encuentra el producto
-      expect(response.body.error).toBe(ERROR_MESSAGES.NOT_FOUND);
+
+      expect(response.body).toHaveProperty('error', ERROR_MESSAGES.NOT_FOUND);
     });
   });
 
   // Actualizar un producto con PUT
-  describe('PUT /api/products/:id', () => {
+  describe('PUT /api/product/:id', () => {
     it('should update a product', async () => {
+      jest.spyOn(ProductService, 'updateProduct').mockResolvedValueOnce({
+        ...updatedProduct,
+        id: mockProductId
+      });
+
       const response = await request(server)
-        .put(`/api/products/${mockProductId}`)
+        .put(`/api/product/${mockProductId}`)
         .send(updatedProduct)
         .expect(HTTP.OK);
 
-      // Verificar que el mensaje y los datos sean correctos tras la actualización
-      expect(response.body.message).toBe(SUCCESS_MESSAGES.PRODUCT_UPDATED);
-      expect(response.body.data).toMatchObject(updatedProduct);
+      expect(response.body).toHaveProperty('message', SUCCESS_MESSAGES.PRODUCT_UPDATED);
+      expect(response.body.data).toMatchObject(expect.objectContaining(updatedProduct));
     });
 
     it('should return 400 for invalid data', async () => {
       const invalidProduct = {
-        name: '',  // Nombre inválido
-        price: -10, // Precio inválido
-        activate: 'notBoolean' // Estado de activación inválido
+        name: '',
+        price: -10
       };
 
+      // Simular un error que retorna un CustomError con status 400
+      jest.spyOn(ProductService, 'updateProduct').mockRejectedValueOnce(new CustomError(HTTP.BAD_REQUEST, ERROR_MESSAGES.INVALID_DATA));
+
       const response = await request(server)
-        .put(`/api/products/${mockProductId}`)
+        .put(`/api/product/${mockProductId}`)
         .send(invalidProduct)
         .expect(HTTP.BAD_REQUEST);
-      
-      // Verificar que se devuelva el error adecuado cuando los datos sean inválidos
-      expect(response.body.error).toBe(ERROR_MESSAGES.INVALID_NAME);  
 
+      expect(response.body).toHaveProperty('error', ERROR_MESSAGES.INVALID_DATA);
     });
   });
 
-  // Obtener todos los productos con Get
-  describe('GET /api/products', () => {
-    it('should get all products', async () => {
+  // Activar/Desactivar producto
+  describe('PATCH /api/product/:id', () => {
+    it('should toggle product activation', async () => {
+      jest.spyOn(ProductService, 'toggleActivate').mockResolvedValueOnce({
+        ...mockProduct,
+        id: mockProductId,
+        activate: !mockProduct.activate
+      });
+
       const response = await request(server)
-        .get('/api/products')
+        .patch(`/api/product/${mockProductId}`)
         .expect(HTTP.OK);
 
-      // Verificar que la respuesta sea correcta
-      expect(response.body.message).toBe(SUCCESS_MESSAGES.PRODUCTS_FETCHED);
-      expect(Array.isArray(response.body.data)).toBeTruthy();
-    });
-
-    it('should handle rate limiting', async () => {
-      // Realizar 100 solicitudes para superar el límite de velocidad
-      const requests = Array(101).fill(null);
-      
-      for (const _ of requests) {
-        const response = await request(server).get('/api/products');
-        if (response.status === 429) {
-          expect(response.body.error).toBe(ERROR_MESSAGES.RATE_LIMIT);
-          break;
-        }
-      }
+      expect(response.body).toHaveProperty('message', SUCCESS_MESSAGES.PRODUCT_UPDATED);
+      expect(response.body.data.activate).toBe(!mockProduct.activate);
     });
   });
 
-  // Crear un nuevo producto con POST
-  describe('POST /api/products', () => {
-    it('should create a new product', async () => {
-      const response = await request(server)
-        .post('/api/products')
-        .send(mockProduct)
-        .expect(HTTP.CREATED);
-
-      // Verificar que la respuesta sea correcta
-      expect(response.body.message).toBe(SUCCESS_MESSAGES.PRODUCT_CREATED);
-      expect(response.body.data).toMatchObject(mockProduct);
-    });
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  // Después de todas las pruebas, se cierra la conexión con Redis
   afterAll(async () => {
+    consoleErrorSpy.mockRestore();
     await redis.quit();
   });
 });

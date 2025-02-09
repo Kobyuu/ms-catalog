@@ -1,58 +1,98 @@
 import request from 'supertest';
 import express, { RequestHandler } from 'express';
-import breaker, { withCircuitBreaker } from '../middleware/circuitBreaker';
+import { CircuitBreakerService, withCircuitBreaker } from '../middleware/circuitBreaker';
 import { ERROR_MESSAGES, HTTP } from '../config/constants';
 
 const app = express();
 
-// Cast the middleware to RequestHandler to match Express types
+// Ruta de prueba que usa el middleware del Circuit Breaker
 app.get('/test', withCircuitBreaker as RequestHandler, (req, res) => {
   res.status(200).send('Success');
 });
 
-// Pruebas para el middleware de Circuit Breaker
 describe('CircuitBreaker Middleware', () => {
+  beforeEach(() => {
+    // Restaurar los mocks para que cada test sea independiente
+    jest.restoreAllMocks();
+
+    // Limpiar el estado de los breakers
+    Object.values(CircuitBreakerService['breakers']).forEach(breaker => {
+      breaker.close();
+    });
+  });
+
   it('should allow the request to pass through when the circuit is closed', async () => {
+    // Forzamos que Math.random devuelva un valor alto para evitar fallos
+    jest.spyOn(Math, 'random').mockReturnValue(0.9);
+
     const response = await request(app).get('/test');
     expect(response.status).toBe(200);
     expect(response.text).toBe('Success');
   });
 
   it('should return service unavailable when the circuit is open', async () => {
-    breaker.open();
+    // Para este test, forzamos errores: Math.random devuelve siempre un valor bajo
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
 
-    // Asegurar que el estado se propague
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Obtener el mismo breaker que usa el middleware
+    const middlewareBreaker = CircuitBreakerService.getBreaker('middleware', async () => {
+      // Con Math.random() siempre menor a 0.5, se lanzará el error
+      if (Math.random() < 0.5) {
+        throw new Error('Simulated failure');
+      }
+      return Promise.resolve();
+    });
 
-    const response = await request(app).get('/test');
-    expect(response.status).toBe(HTTP.SERVICE_UNAVAILABLE);
-    expect(response.body).toEqual({ message: ERROR_MESSAGES.SERVICE_UNAVAILABLE });
-
-    breaker.close();
-  });
-
-  it('should handle errors and open the circuit', async () => {
-    // Generamos múltiples fallos para superar el umbral de error
+    // Generar fallos para forzar la apertura del breaker
     for (let i = 0; i < 5; i++) {
       try {
-        await breaker.fire(() => Promise.reject(new Error('Test error')));
+        await middlewareBreaker.fire();
       } catch (err) {
-        // Ignoramos los errores ya que queremos solo disparar el fallo
+        // Error esperado
       }
     }
 
-    // Esperamos a que el breaker se abra realmente
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Esperar a que se propague el estado del breaker (ajusta el timeout si es necesario)
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Verificamos que el breaker realmente esté abierto
-    expect(breaker.opened).toBe(true);
-
-    // Ahora hacemos la solicitud y verificamos que devuelva 503
     const response = await request(app).get('/test');
     expect(response.status).toBe(HTTP.SERVICE_UNAVAILABLE);
     expect(response.body).toEqual({ message: ERROR_MESSAGES.SERVICE_UNAVAILABLE });
+  });
 
-    // Restablecemos el estado del circuito para futuras pruebas
-    breaker.close();
+  it('should handle errors and open the circuit', async () => {
+    // Forzamos errores constantes para abrir el breaker
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+
+    const middlewareBreaker = CircuitBreakerService.getBreaker('middleware', async () => {
+      if (Math.random() < 0.5) {
+        throw new Error('Simulated failure');
+      }
+      return Promise.resolve();
+    });
+
+    // Generar fallos para superar el umbral y abrir el breaker
+    for (let i = 0; i < 5; i++) {
+      try {
+        await middlewareBreaker.fire();
+      } catch (err) {
+        // Error esperado
+      }
+    }
+
+    // Esperar a que el breaker se abra
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Verificar que el breaker está abierto
+    expect(middlewareBreaker.opened).toBe(true);
+
+    const response = await request(app).get('/test');
+    expect(response.status).toBe(HTTP.SERVICE_UNAVAILABLE);
+    expect(response.body).toEqual({ message: ERROR_MESSAGES.SERVICE_UNAVAILABLE });
+  });
+
+  afterEach(() => {
+    // Restaurar mocks al finalizar cada test
+    jest.restoreAllMocks();
   });
 });
