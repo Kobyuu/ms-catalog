@@ -3,11 +3,11 @@ import { Request, Response, NextFunction } from 'express';
 import { ERROR_MESSAGES, HTTP, CIRCUIT_BREAKER_MESSAGES } from '../config/constants';
 
 const breakerOptions = {
-  timeout: 3000,
-  errorThresholdPercentage: 50,
-  resetTimeout: 30000
+  timeout: 5000,            // Aumentar el timeout a 5 segundos
+  errorThresholdPercentage: 70,  // Aumentar el umbral de errores
+  resetTimeout: 10000,      // Reducir el tiempo en estado abierto
+  volumeThreshold: 10       // Añadir un mínimo de llamadas antes de abrir
 };
-
 export class CircuitBreakerService {
   private static breakers: { [key: string]: CircuitBreaker } = {};
 
