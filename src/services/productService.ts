@@ -58,18 +58,34 @@ export class ProductService {
 
   static async getProductById(id: string): Promise<ProductAttributes> {
     const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.GET_BY_ID, async () => {
-      const product = await Product.findByPk(id, {
-        attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
-      });
-      if (!product) {
-        throw new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+      try {
+        // Primero intentar obtener de caché
+        const cachedProduct = await cacheService.getFromCache(CACHE_KEYS.PRODUCTS.BY_ID(id));
+        if (cachedProduct) {
+          return cachedProduct;
+        }
+  
+        const product = await Product.findByPk(id, {
+          attributes: { exclude: DATABASE.EXCLUDED_ATTRIBUTES },
+        });
+        
+        if (!product) {
+          throw new CustomError(HTTP.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+        }
+  
+        // Guardar en caché
+        await cacheService.setToCache(CACHE_KEYS.PRODUCTS.BY_ID(id), product);
+        return product;
+      } catch (error) {
+        if (error instanceof CustomError) {
+          throw error;
+        }
+        throw new CustomError(HTTP.SERVER_ERROR, ERROR_MESSAGES.FETCH_ONE_ERROR);
       }
-      return product;
     });
-
+  
     return breaker.fire() as Promise<ProductAttributes>;
-  }
-
+    }
   static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
     const breaker = CircuitBreakerService.getBreaker(CIRCUIT_OPERATIONS.PRODUCTS.CREATE, async () => {
       return this.withTransaction(async (transaction) => {
