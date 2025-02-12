@@ -5,7 +5,7 @@ services:
     image: postgres:15
     container_name: ms-catalog_postgres
     environment:
-      POSTGRES_DB: ms-catalog
+      POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
     ports:
@@ -19,6 +19,18 @@ services:
       interval: 5s
       retries: 5
 
+  db-init:
+    image: postgres:15
+    container_name: ms-catalog_db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      psql -U postgres -h postgres -c "CREATE DATABASE \"ms-catalog\";"
+    environment:
+      PGPASSWORD: 1234
+    networks:
+      - microservicios-red
   # Redis
   redis:
     image: redis:7
