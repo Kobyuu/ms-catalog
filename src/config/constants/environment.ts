@@ -1,5 +1,7 @@
+import { validateEnv } from '../validateEnv';
 import { DEFAULTS } from './defaults';
-import '../validateEnv';
+
+validateEnv();
 
 const {
     NODE_ENV,
@@ -22,5 +24,11 @@ export const ENV = {
         PORT: Number(REDIS_PORT) || DEFAULTS.REDIS.PORT,
         CACHE_EXPIRY: Number(CACHE_EXPIRY) || DEFAULTS.REDIS.CACHE_EXPIRY,
         RETRY_DELAY: Number(RETRY_DELAY) || DEFAULTS.REDIS.RETRY_DELAY
+    },
+    POOL: {
+        MAX_CONNECTIONS: 5,
+        MIN_CONNECTIONS: 1,
+        IDLE_TIME: 600000, // 10 minutos en milisegundos
+        ACQUIRE_TIMEOUT: 30000 // 30 segundos en milisegundos
     }
-};
+} as const;

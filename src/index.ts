@@ -1,19 +1,23 @@
+import { ENV, DYNAMIC_MESSAGES } from './config/constants';
 import colors from 'colors';
-import server from "./server";
+import server from './server';
 import { connectDb } from './config/db';
-import { ENV } from './config/constants';
 
-// Iniciar el servidor
 async function startServer() {
-    try {
-        await connectDb();
-        server.listen(Number(ENV.PORT), "0.0.0.0", () => {
-            console.log(colors.cyan.bold(`REST API en el puerto ${ENV.PORT}`));
-        });
-    } catch (error) {
-        console.error(error);
-        process.exit(1);
+  try {
+    await connectDb();
+    server.listen(ENV.PORT, () => {
+      console.log(colors.cyan.bold(DYNAMIC_MESSAGES.SERVER_START(ENV.PORT)));
+    });
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error(colors.bgRed.white(err.message));
+    } else {
+      console.error(colors.bgRed.white(String(err)));
     }
+    process.exit(1); // Finaliza el proceso si la conexión falla
+  }
 }
 
+// Iniciar el servidor
 startServer();

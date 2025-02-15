@@ -26,6 +26,7 @@ export const ERROR_MESSAGES = {
 
   ENV_VAR_NOT_DEFINED: "Variable de entorno no definida",
   SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente",
+  REDIS_URL_PARSE: 'Error parsing Redis URL:',
 
   DELETE_ERROR: "Error al eliminar el producto",
   ACTIVATION_ERROR: "Error al activar el producto",
@@ -64,3 +65,7 @@ export const LOG_MESSAGES = {
     GET_ALL: 'Error in getAllProducts:'
   }
 };
+
+export const DYNAMIC_MESSAGES = {
+  SERVER_START: (port: number) => `REST API en el puerto ${port}`,
+}

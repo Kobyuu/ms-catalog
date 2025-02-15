@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import { ENV } from '../config/constants';
-import { redis } from '../config/redisClient';
 import { cacheService } from '../services/redisCacheService';
 
 

@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, Default } from 'sequelize-typescript'
-import { ERROR_MESSAGES } from '../config/constants/messages'
+import { ERROR_MESSAGES } from '../config/constants'
 
 @Table({
     tableName: 'products'
