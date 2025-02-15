@@ -68,6 +68,17 @@ services:
     networks:
       - microservicios-red
 
+  k6:
+    image: grafana/k6:latest
+    profiles: ["k6"]
+    volumes:
+      - ./k6:/scripts
+    networks:
+      - microservicios-red
+    depends_on:
+      - app
+    command: run /scripts/load-test.js
+
 volumes:
   postgres_data:
 
