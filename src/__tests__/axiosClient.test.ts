@@ -1,8 +1,20 @@
 import { axiosInstance } from '../config/axiosClient';
 import MockAdapter from 'axios-mock-adapter';
+// import redisClient from '../config/redisClient';
 import { cacheService } from '../services/redisCacheService';
-//test modificado
-describe('Axios Client Tests', () => {
+
+// Agregar el mock de redisClient al inicio
+jest.mock('../config/redisClient', () => ({
+  __esModule: true,
+  default: {
+    quit: jest.fn().mockResolvedValue('OK')
+  }
+}));
+
+// Importar el mock después de crearlo
+const redisClient = require('../config/redisClient').default;
+
+describe('Axios Retry Tests', () => {
   let mock: MockAdapter;
 
   beforeEach(() => {
@@ -13,38 +25,47 @@ describe('Axios Client Tests', () => {
 
   afterEach(() => {
     mock.reset();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  it('should make network request if cache is empty', async () => {
-    const endpoint = '/test';
-    const responseData = { data: 'test data' };
-    mock.onGet(endpoint).reply(200, responseData);
+  it('should use Redis cache for GET requests', async () => {
+    const endpoint = '/cached-endpoint';
+    const cachedData = { data: 'cached response' };
+    
+    // Primera solicitud - sin caché
+    mock.onGet(endpoint).replyOnce(200, cachedData);
+    
+    const response1 = await axiosInstance.get(endpoint);
+    expect(response1.data).toEqual(cachedData);
+    expect(cacheService.setToCache).toHaveBeenCalledWith(
+      `cache:${endpoint}`,
+      cachedData
+    );
 
-    const response = await axiosInstance.get(endpoint);
-
-    expect(cacheService.getFromCache).toHaveBeenCalledWith(`cache:${endpoint}`);
-    expect(cacheService.setToCache).toHaveBeenCalledWith(`cache:${endpoint}`, responseData);
-    expect(response.data).toEqual(responseData);
-  });
-
-  it('should return cached response if available', async () => {
-    const endpoint = '/test';
-    const cachedData = { data: 'cached data' };
-    // Simular que existe dato en caché: el interceptor rechaza la solicitud con { response: { data: cachedData } }
-    jest.spyOn(cacheService, 'getFromCache').mockResolvedValue(cachedData);
+    // Segunda solicitud - con caché
+    jest.spyOn(cacheService, 'getFromCache').mockResolvedValueOnce(cachedData);
     
     try {
       await axiosInstance.get(endpoint);
-    } catch (error: any) {
-      expect(error.response.data).toEqual(cachedData);
-      expect(cacheService.getFromCache).toHaveBeenCalledWith(`cache:${endpoint}`);
+      // Si no se lanza error, forzamos el fallo:
+      throw new Error('Expected axiosInstance.get to throw an error');
+    } catch (error) { 
+      // Se hace cast para acceder a error.response
+      const err = error as { response?: { data: any } };
+      expect(err.response?.data).toEqual(cachedData);
     }
   });
 
   it('should handle network errors', async () => {
     const endpoint = '/network-error';
-    mock.onGet(endpoint).networkError();
-    await expect(axiosInstance.get(endpoint)).rejects.toThrow('Network Error');
+    mock.onGet(endpoint).networkError(); // Simular error de red
+
+    await expect(axiosInstance.get(endpoint))
+      .rejects
+      .toThrow('Network Error');
+  });
+
+  afterAll(async () => {
+    await redisClient.quit();
   });
 });
