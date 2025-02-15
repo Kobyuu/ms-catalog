@@ -1,57 +1,50 @@
 import { axiosInstance } from '../config/axiosClient';
 import MockAdapter from 'axios-mock-adapter';
-import { redis } from '../config/redisClient';
 import { cacheService } from '../services/redisCacheService';
-
-describe('Axios Retry Tests', () => {
+//test modificado
+describe('Axios Client Tests', () => {
   let mock: MockAdapter;
 
   beforeEach(() => {
     mock = new MockAdapter(axiosInstance);
     jest.spyOn(cacheService, 'getFromCache').mockResolvedValue(null);
-    jest.spyOn(cacheService, 'setToCache').mockResolvedValue();
+    jest.spyOn(cacheService, 'setToCache').mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     mock.reset();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
-  it('should use Redis cache for GET requests', async () => {
-    const endpoint = '/cached-endpoint';
-    const cachedData = { data: 'cached response' };
-    
-    // Primera solicitud - sin caché
-    mock.onGet(endpoint).replyOnce(200, cachedData);
-    
-    const response1 = await axiosInstance.get(endpoint);
-    expect(response1.data).toEqual(cachedData);
-    expect(cacheService.setToCache).toHaveBeenCalledWith(
-      `cache:${endpoint}`,
-      cachedData
-    );
+  it('should make network request if cache is empty', async () => {
+    const endpoint = '/test';
+    const responseData = { data: 'test data' };
+    mock.onGet(endpoint).reply(200, responseData);
 
-    // Segunda solicitud - con caché
-    jest.spyOn(cacheService, 'getFromCache')
-      .mockResolvedValueOnce(cachedData);
+    const response = await axiosInstance.get(endpoint);
+
+    expect(cacheService.getFromCache).toHaveBeenCalledWith(`cache:${endpoint}`);
+    expect(cacheService.setToCache).toHaveBeenCalledWith(`cache:${endpoint}`, responseData);
+    expect(response.data).toEqual(responseData);
+  });
+
+  it('should return cached response if available', async () => {
+    const endpoint = '/test';
+    const cachedData = { data: 'cached data' };
+    // Simular que existe dato en caché: el interceptor rechaza la solicitud con { response: { data: cachedData } }
+    jest.spyOn(cacheService, 'getFromCache').mockResolvedValue(cachedData);
     
     try {
       await axiosInstance.get(endpoint);
     } catch (error: any) {
       expect(error.response.data).toEqual(cachedData);
+      expect(cacheService.getFromCache).toHaveBeenCalledWith(`cache:${endpoint}`);
     }
   });
-// Prueba para verificar que se manejen los errores de red
+
   it('should handle network errors', async () => {
     const endpoint = '/network-error';
     mock.onGet(endpoint).networkError();
-
-    await expect(axiosInstance.get(endpoint))
-      .rejects
-      .toThrow('Network Error');
-  });
-// Después de todas las pruebas, se cierra la conexión con Redis
-  afterAll(async () => {
-    await redis.quit();
+    await expect(axiosInstance.get(endpoint)).rejects.toThrow('Network Error');
   });
 });
