@@ -33,5 +33,7 @@ yarn-error.log*
 .cache/
 .eslintcache/
 turbo/
+# Excepciones para k6
+!k6/*.js
 
 logs/
