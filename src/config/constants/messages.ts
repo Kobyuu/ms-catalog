@@ -48,24 +48,17 @@ export const SUCCESS_MESSAGES = {
   DB_CONNECTION: "Conexión exitosa a la base de datos",
   REDIS_CONNECTION: "Conexión exitosa a Redis",
 };
-
-export const CIRCUIT_BREAKER_MESSAGES = {
-  OPEN: 'Circuito abierto',
-  HALF_OPEN: 'Circuito medio abierto',
-  CLOSED: 'Circuito cerrado'
-};
-
 export const LOG_MESSAGES = {
   CACHE: {
-    RETURNING: 'Returning cached products',
-    FETCHING: 'Fetching products from DB',
-    UPDATING: 'Updating cache with DB products'
+    RETURNING: 'Retornando productos en caché',
+    FETCHING: 'Obteniendo productos desde la base de datos',
+    UPDATING: 'Actualizando caché con productos de la base de datos'
   },
   ERROR: {
-    GET_ALL: 'Error in getAllProducts:'
+    GET_ALL: 'Error al obtener todos los productos:'
   }
 };
 
 export const DYNAMIC_MESSAGES = {
   SERVER_START: (port: number) => `REST API en el puerto ${port}`,
-}
+};

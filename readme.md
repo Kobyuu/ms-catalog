@@ -77,42 +77,40 @@ Este microservicio permite gestionar un catálogo de productos, incluyendo la ob
     npm run admin:report
     ```
 
-
 ## API Endpoints
 
 ### Productos
 
-- **GET** `/api/products`
+- **GET** `/api/product`
   - Obtiene todos los productos
-  - Rate limit: 100 peticiones por IP cada 15 minutos
+  - Rate limit: 100,000 peticiones por IP cada 15 minutos
 
-- **GET** `/api/products/:id`
+- **GET** `/api/product/:id`
   - Obtiene un producto específico
-  - Parámetros: [id](http://_vscodecontentref_/2) (número entero)
+  - Parámetros: id (número entero)
 
-- **POST** `/api/products`
+- **POST** `/api/product`
   - Crea un nuevo producto
   - Body:
     ```json
     {
-      "name": "string",
+      "name": "string", 
       "price": number,
       "activate": boolean
     }
     ```
 
-- **PUT** `/api/products/:id`
+- **PUT** `/api/product/:id`
   - Actualiza un producto existente
-  - Parámetros: [id](http://_vscodecontentref_/3) (número entero)
+  - Parámetros: id (número entero)
   - Body: Similar al POST (campos opcionales)
 
-- **PATCH** `/api/products/:id`
+- **PATCH** `/api/product/:id`
   - Activa/desactiva un producto
-  - Parámetros: [id](http://_vscodecontentref_/4) (número entero)
+  - Parámetros: id (número entero)
 
 ## Características
 
-- Circuit Breaker para manejo de fallos
 - Rate Limiting por IP
 - Caché con Redis
 - Logs estructurados con Winston
