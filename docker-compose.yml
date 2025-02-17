@@ -1,17 +1,33 @@
 version: '3.8'
 services:
+  # Traefik - Proxy inverso y balanceador de carga
+  traefik:
+    image: traefik:v2.9
+    container_name: ms-catalog_traefik
+    command:
+      - "--api.insecure=true"  # Activa el panel de control de Traefik (opcional)
+      - "--providers.docker=true"  # Habilita el proveedor de Docker
+      - "--entrypoints.web.address=:80"  # Expone el puerto 80 para HTTP
+    ports:
+      - "100:80"   # Puerto para HTTP
+      - "9100:8080"  # Puerto para el panel de Traefik (opcional)
+    networks:
+      - microservicios-red
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"  # Permite que Traefik lea la configuración de Docker
+
   # PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: ms-catalog_postgres
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: ms-catalog
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
     ports:
       - "6432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_catalog:/var/lib/postgresql/data
     networks:
       - microservicios-red
     healthcheck:
@@ -19,6 +35,7 @@ services:
       interval: 5s
       retries: 5
 
+  # Inicialización de la base de datos
   db-init:
     image: postgres:15
     container_name: ms-catalog_db-init
@@ -31,6 +48,7 @@ services:
       PGPASSWORD: 1234
     networks:
       - microservicios-red
+
   # Redis
   redis:
     image: redis:7
@@ -58,29 +76,33 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - postgres
+      - redis
     volumes:
       - .:/app
     command: npm run dev
     networks:
       - microservicios-red
+    labels:
+      - "traefik.enable=true"  # Habilita Traefik para este contenedor
+      - "traefik.http.routers.app.rule=Host(`localhost`)"  # Define la regla para enrutar el tráfico al contenedor
+      - "traefik.http.services.app.loadbalancer.server.port=4001"  # Puerto de la aplicación dentro del contenedor
 
+  # K6 Load Testing
   k6:
     image: grafana/k6:latest
+    container_name: ms-catalog_k6
     profiles: ["k6"]
     volumes:
       - ./k6:/scripts
-    networks:
-      - microservicios-red
+    command: run /scripts/load-test.js
     depends_on:
       - app
-    command: run /scripts/load-test.js
+    networks:
+      - microservicios-red
 
 volumes:
-  postgres_data:
+  postgres_data_catalog:
 
 networks:
   microservicios-red:
