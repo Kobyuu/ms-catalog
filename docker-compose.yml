@@ -9,8 +9,8 @@ services:
       - "--providers.docker=true"  # Habilita el proveedor de Docker
       - "--entrypoints.web.address=:80"  # Expone el puerto 80 para HTTP
     ports:
-      - "100:80"   # Puerto para HTTP
-      - "9100:8080"  # Puerto para el panel de Traefik (opcional)
+      - "90:80"   # Puerto para HTTP
+      - "9080:8080"  # Puerto para el panel de Traefik (opcional)
     networks:
       - microservicios-red
     volumes:
