@@ -1,13 +1,18 @@
 export const ERROR_MESSAGES = {
+  // Errores de productos
   DUPLICATE_NAME: "Ya existe un producto con este nombre",
   NOT_FOUND: "Producto no encontrado",
   CREATION_ERROR: "Error al crear el producto",
-  FETCH_ERROR: "Error al obtener los productos",
+  FETCH_ERROR: "Error al obtener los productos", 
   FETCH_ONE_ERROR: "Error al obtener el producto",
-  ACTIVATE_FIELD_MISSING: "El campo 'activate' no existe en el producto",
   UPDATE_ERROR: "Error al actualizar el producto",
+  DELETE_ERROR: "Error al eliminar el producto",
   ACTIVATE_ERROR: "Error al activar/desactivar el producto",
-  
+  ACTIVATION_ERROR: "Error al activar el producto",
+  DEACTIVATION_ERROR: "Error al desactivar el producto",
+  ACTIVATE_FIELD_MISSING: "El campo 'activate' no existe en el producto",
+
+  // Errores de validación
   INVALID_ID: "El ID debe ser un número entero",
   EMPTY_NAME: "El nombre del producto es requerido",
   INVALID_NAME: "El nombre del producto es inválido",
@@ -15,38 +20,33 @@ export const ERROR_MESSAGES = {
   EMPTY_PRICE: "El precio es requerido",
   PRICE_POSITIVE: "El precio debe ser mayor a 0",
   INVALID_AVAILABILITY: "La disponibilidad debe ser un valor verdadero o falso",
+  INVALID_DATA: "Datos de producto inválidos",
 
+  // Errores de infraestructura
   DB_URL_NOT_DEFINED: "DATABASE_URL no está definida en las variables de entorno",
   DB_CONNECTION: "Error al conectar la base de datos",
-
   EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
-
   RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos",
   REDIS_CONNECTION: "Error al conectar a Redis",
-
+  REDIS_URL_PARSE: 'Error parsing Redis URL:',
+  REDIS_CLIENT_ERROR: "Redis Client Error:",
   ENV_VAR_NOT_DEFINED: "Variable de entorno no definida",
   SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente",
-  REDIS_URL_PARSE: 'Error parsing Redis URL:',
-
-  DELETE_ERROR: "Error al eliminar el producto",
-  ACTIVATION_ERROR: "Error al activar el producto",
-  DEACTIVATION_ERROR: "Error al desactivar el producto",
-
-  INVALID_DATA: "Datos de producto inválidos",
-  REDIS_CLIENT_ERROR: "Redis Client Error:",
 };
 
 export const SUCCESS_MESSAGES = {
-    PRODUCT_CREATED: "Producto creado exitosamente",
-    PRODUCT_UPDATED: "Producto actualizado exitosamente",
-    PRODUCT_FETCHED: "Producto obtenido exitosamente",
-    PRODUCTS_FETCHED: "Productos obtenidos exitosamente",
-    PRODUCT_ACTIVATED: "Producto activado exitosamente",
-    DB_CONNECTION: "Conexión exitosa a la base de datos",
-    REDIS_CONNECTION: "Conexión exitosa a Redis",
-    PRODUCT_DELETED: "Producto eliminado exitosamente",
-    PRODUCT_DEACTIVATED: "Producto desactivado exitosamente",
+  // Mensajes de productos
+  PRODUCT_CREATED: "Producto creado exitosamente",
+  PRODUCT_UPDATED: "Producto actualizado exitosamente", 
+  PRODUCT_FETCHED: "Producto obtenido exitosamente",
+  PRODUCTS_FETCHED: "Productos obtenidos exitosamente",
+  PRODUCT_ACTIVATED: "Producto activado exitosamente",
+  PRODUCT_DELETED: "Producto eliminado exitosamente",
+  PRODUCT_DEACTIVATED: "Producto desactivado exitosamente",
 
+  // Mensajes de infraestructura
+  DB_CONNECTION: "Conexión exitosa a la base de datos",
+  REDIS_CONNECTION: "Conexión exitosa a Redis",
 };
 
 export const CIRCUIT_BREAKER_MESSAGES = {

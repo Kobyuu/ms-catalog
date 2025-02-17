@@ -1,4 +1,3 @@
-
 import type { ProductAttributes, ProductResponse } from "../types/product.types";
 import { ERROR_MESSAGES } from "../config/constants/";
 

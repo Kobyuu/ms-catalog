@@ -3,6 +3,7 @@ import { DEFAULTS } from './defaults';
 
 validateEnv();
 
+//Llamado a process.env para obtener las variables de entorno
 const {
     NODE_ENV,
     PORT,
@@ -13,7 +14,7 @@ const {
     CACHE_EXPIRY,
     RETRY_DELAY
 } = process.env;
-
+// Definición de las variables de entorno
 export const ENV = {
     NODE_ENV: NODE_ENV || DEFAULTS.NODE_ENV,
     PORT: Number(PORT) || DEFAULTS.PORT,

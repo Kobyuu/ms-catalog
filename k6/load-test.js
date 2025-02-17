@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
+// Configuración de prueba de carga con tasa de solicitudes constante
 export const options = {
   scenarios: {
     constant_request_rate: {
@@ -14,11 +15,11 @@ export const options = {
   },
   discardResponseBodies: true,
   thresholds: {
-    http_req_failed: ['rate<0.05'], // Aumentamos la tolerancia al 5%
-    http_req_duration: ['p(95)<1000'], // Aumentamos el tiempo máximo a 1s
+    http_req_failed: ['rate<0.05'], 
+    http_req_duration: ['p(95)<1000'],
   }
 };
-
+// Función principal que realiza petición GET al endpoint de productos
 export default function () {
   const BASE_URL = 'http://ms-catalog_app:4001';
   

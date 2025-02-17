@@ -5,9 +5,9 @@ import { HTTP, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../config/constants';
 import redisClient from '../config/redisClient';
 import { CustomError } from '../utils/CustomError';
 
-// Mock ProductService
+// Configuración de mocks para servicios y redis
 jest.mock('../services/productService');
-// Mock Redis client
+
 jest.mock('../config/redisClient', () => ({
   __esModule: true,
   default: {
@@ -18,10 +18,12 @@ jest.mock('../config/redisClient', () => ({
 describe('ProductController', () => {
   let consoleErrorSpy: jest.SpyInstance;
 
+  // Configuración inicial de las pruebas
   beforeAll(() => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
+  // Datos mock para pruebas
   const mockProduct = {
     name: 'Test Product',
     price: 99.99,
@@ -30,6 +32,7 @@ describe('ProductController', () => {
 
   const mockProductId = 1;
 
+  // Pruebas del endpoint GET para listar productos
   describe('GET /api/product', () => {
     it('should get all products', async () => {
       const mockProducts = [
@@ -57,6 +60,7 @@ describe('ProductController', () => {
     });
   });
 
+  // Pruebas del endpoint GET para obtener producto por ID
   describe('GET /api/product/:id', () => {
     it('should get product by id', async () => {
       jest.spyOn(ProductService, 'getProductById').mockResolvedValueOnce({
@@ -85,6 +89,7 @@ describe('ProductController', () => {
     });
   });
 
+  // Pruebas del endpoint POST para crear productos
   describe('POST /api/product', () => {
     it('should create product', async () => {
       jest.spyOn(ProductService, 'createProduct').mockResolvedValueOnce({
@@ -118,6 +123,7 @@ describe('ProductController', () => {
     });
   });
 
+  // Pruebas del endpoint PUT para actualizar productos
   describe('PUT /api/product/:id', () => {
     const updatedProduct = {
       name: 'Updated Product',
@@ -141,10 +147,12 @@ describe('ProductController', () => {
     });
   });
 
+  // Limpieza después de cada prueba
   afterEach(() => {
     jest.clearAllMocks();
   });
 
+  // Limpieza final después de todas las pruebas
   afterAll(async () => {
     consoleErrorSpy.mockRestore();
     await redisClient.quit();

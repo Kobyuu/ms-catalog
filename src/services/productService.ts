@@ -7,7 +7,9 @@ import { ProductCreateInput, ProductUpdateInput, ProductAttributes } from "../ty
 import { ProductUtils } from "../utils/productUtils";
 import { CustomError } from '../utils/CustomError';
 
+// Servicio para gestionar operaciones de productos con caché y transacciones
 export class ProductService {
+  // Método auxiliar para manejar transacciones de base de datos
   private static async withTransaction<T>(operation: (transaction: Transaction) => Promise<T>): Promise<T> {
     const transaction = await db.transaction();
     try {
@@ -20,6 +22,7 @@ export class ProductService {
     }
   }
 
+  // Obtiene todos los productos (primero busca en caché, luego en DB)
   static async getAllProducts(): Promise<ProductAttributes[]> {
     try {
       const cachedProducts = await cacheService.getFromCache(CACHE_KEYS.PRODUCTS.ALL);
@@ -47,6 +50,7 @@ export class ProductService {
     }
   }
 
+  // Obtiene un producto por ID (primero busca en caché, luego en DB)
   static async getProductById(id: string): Promise<ProductAttributes> {
     try {
       const cachedProduct = await cacheService.getFromCache(CACHE_KEYS.PRODUCTS.BY_ID(id));
@@ -69,6 +73,7 @@ export class ProductService {
     }
   }
 
+  // Crea un nuevo producto y limpia las claves de caché relacionadas
   static async createProduct(productData: ProductCreateInput): Promise<ProductAttributes> {
     const validation = ProductUtils.validateProductData(productData as Partial<ProductAttributes>);
     if (!validation.isValid) {
@@ -85,6 +90,7 @@ export class ProductService {
     });
   }
 
+  // Actualiza un producto existente y limpia el caché
   static async updateProduct(id: string, productData: ProductUpdateInput): Promise<ProductAttributes> {
     const validation = ProductUtils.validateProductData(productData);
     if (!validation.isValid) {
@@ -104,6 +110,7 @@ export class ProductService {
     });
   }
 
+  // Alterna el estado de activación de un producto
   static async toggleActivate(id: string): Promise<ProductAttributes> {
     return this.withTransaction(async (transaction) => {
       const product = await Product.findByPk(id, { transaction });

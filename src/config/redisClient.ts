@@ -3,7 +3,7 @@ import RedisMock from 'ioredis-mock';
 import { ENV, ERROR_MESSAGES, SUCCESS_MESSAGES } from './constants';
 import { RedisConfig } from '../types/redis.types';
 
-// Crear una instancia de Redis y conectarla
+// Función para parsear la URL de Redis y obtener la configuración
 const parseRedisUrl = (url: string): RedisConfig => {
   try {
     const redisUrl = new URL(url);
@@ -20,8 +20,10 @@ const parseRedisUrl = (url: string): RedisConfig => {
   }
 };
 
+// Obtiene la configuración de Redis desde la URL
 const redisConfig = parseRedisUrl(ENV.REDIS.URL);
 
+// Inicializa el cliente Redis (usa mock para tests)
 const redisClient = process.env.NODE_ENV === 'test' 
   ? new RedisMock() 
   : new Redis({
@@ -35,6 +37,7 @@ const redisClient = process.env.NODE_ENV === 'test'
       }
     });
 
+// Manejadores de eventos de conexión
 redisClient.on('connect', () => {
   console.log(SUCCESS_MESSAGES.REDIS_CONNECTION);
 });

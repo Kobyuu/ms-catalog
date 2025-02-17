@@ -35,7 +35,7 @@ try {
   console.error('Error al intentar reconectar:', err);
 }
 });
-
+// Conectar a la base de datos
 export async function connectDb(): Promise<void> {
     try {
         await sequelize.authenticate();
@@ -46,12 +46,12 @@ export async function connectDb(): Promise<void> {
         throw error; // Lanza el error para que el servidor lo gestione
     }
 }
-
+// Implementación de la interfaz DatabaseService
 class SequelizeDatabaseService implements DatabaseService {
   async transaction(): Promise<any> {
     return sequelize.transaction();
   }
 }
-
+// Exportar la instancia de Sequelize y la implementación de la interfaz DatabaseService
 export const dbService = new SequelizeDatabaseService();
 export default sequelize;

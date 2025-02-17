@@ -5,13 +5,16 @@ import redisClient from '../config/redisClient';
 import { ProductService } from '../services/productService';
 import { CustomError } from '../utils/CustomError';
 
+// Suite principal de pruebas de integración para la API de productos
 describe('Product API Integration Tests', () => {
-  let consoleErrorSpy: jest.SpyInstance; // Se agrega la anotación de tipo
+  let consoleErrorSpy: jest.SpyInstance; 
 
+  // Configuración inicial de las pruebas
   beforeAll(() => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
+  // Datos de prueba mock
   const mockProduct = {
     name: 'Test Product',
     price: 99.99,
@@ -31,6 +34,7 @@ describe('Product API Integration Tests', () => {
 
   const mockProductId = 1;
 
+  // Pruebas para obtener un producto por ID
   describe('GET /api/product/:id', () => {
     it('should get product by id successfully', async () => {
       jest.spyOn(ProductService, 'getProductById').mockResolvedValueOnce({
@@ -59,6 +63,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Pruebas para obtener todos los productos
   describe('GET /api/product', () => {
     it('should get all products successfully', async () => {
       const mockProducts = [
@@ -87,6 +92,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Pruebas para actualizar un producto
   describe('PUT /api/product/:id', () => {
     it('should update a product', async () => {
       jest.spyOn(ProductService, 'updateProduct').mockResolvedValueOnce({
@@ -117,6 +123,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Pruebas para activar/desactivar un producto
   describe('PATCH /api/product/:id', () => {
     it('should toggle product activation', async () => {
       jest.spyOn(ProductService, 'toggleActivate').mockResolvedValueOnce({
@@ -146,6 +153,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Pruebas para crear un nuevo producto
   describe('POST /api/product', () => {
     it('should create a product successfully', async () => {
       jest.spyOn(ProductService, 'createProduct').mockResolvedValueOnce({
@@ -176,6 +184,7 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Pruebas de manejo de errores generales
   describe('Error handling', () => {
     it('should handle internal server errors', async () => {
       jest.spyOn(ProductService, 'getProductById').mockRejectedValueOnce(
@@ -190,10 +199,12 @@ describe('Product API Integration Tests', () => {
     });
   });
 
+  // Limpieza después de cada prueba
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
+  // Limpieza final después de todas las pruebas
   afterAll(async () => {
     consoleErrorSpy.mockRestore();
     await redisClient.quit();
