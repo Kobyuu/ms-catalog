@@ -28,8 +28,8 @@ export const ERROR_MESSAGES = {
   EXTERNAL_API_ERROR: "Error al obtener datos de la API externa",
   RATE_LIMIT: "Demasiadas peticiones desde esta IP, por favor intente nuevamente en 15 minutos",
   REDIS_CONNECTION: "Error al conectar a Redis",
-  REDIS_URL_PARSE: 'Error parsing Redis URL:',
-  REDIS_CLIENT_ERROR: "Redis Client Error:",
+  REDIS_URL_PARSE: 'Error al parsear la Redis URL:',
+  REDIS_CLIENT_ERROR: "Error en el cliente Redis:",
   ENV_VAR_NOT_DEFINED: "Variable de entorno no definida",
   SERVICE_UNAVAILABLE: "Servicio no disponible temporalmente",
 };
@@ -56,7 +56,8 @@ export const LOG_MESSAGES = {
   },
   ERROR: {
     GET_ALL: 'Error al obtener todos los productos:'
-  }
+  },
+  DATABASE_URL: 'DATABASE_URL:'
 };
 
 export const DYNAMIC_MESSAGES = {

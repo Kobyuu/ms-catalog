@@ -1,12 +1,12 @@
 import { Sequelize } from 'sequelize-typescript';
 import dotenv from 'dotenv';
 import colors from 'colors';
-import { ENV, ERROR_MESSAGES, SUCCESS_MESSAGES } from './constants';
+import { ENV, ERROR_MESSAGES, SUCCESS_MESSAGES, LOG_MESSAGES } from './constants';
 import { DatabaseService } from '../types/cache.types';
 
 dotenv.config();
 
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
+console.log(LOG_MESSAGES.DATABASE_URL, process.env.DATABASE_URL);
 
 if (!process.env.DATABASE_URL) {
     throw new Error(ERROR_MESSAGES.DB_URL_NOT_DEFINED);
@@ -27,14 +27,15 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
 
 // Hook para intentar reconectar automáticamente si la conexión se pierde
 sequelize.addHook('afterDisconnect', async () => {
-console.log('Conexión a la base de datos perdida. Intentando reconectar...');
-try {
-  await sequelize.authenticate();
-  console.log('Reconectado a la base de datos con éxito.');
-} catch (err) {
-  console.error('Error al intentar reconectar:', err);
-}
+  console.log(ERROR_MESSAGES.DB_CONNECTION);
+  try {
+    await sequelize.authenticate();
+    console.log(SUCCESS_MESSAGES.DB_CONNECTION);
+  } catch (err) {
+    console.error(ERROR_MESSAGES.DB_CONNECTION, err);
+  }
 });
+
 // Conectar a la base de datos
 export async function connectDb(): Promise<void> {
     try {
